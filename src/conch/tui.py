@@ -50,6 +50,10 @@ class Submit(Message):
 
 
 class ConchTUI(App):
+    input_modes = [
+        {"name": "sh", "description": "Shell mode", "switch": ";", "color": "#44CC88"},
+        {"name": "py", "description": "Python mode", "switch": ":", "color": "#CC8844"},
+    ]
     # Help text for the /help command
     HELP_TEXT = """
 Available Commands:
@@ -66,8 +70,7 @@ File Commands:
 Shell Commands:
   > sh: <command> - Execute a shell command (e.g., "> sh: ls -la")
   sh: <command>   - Same as above, shorthand version
-  > wsl: <command> - Execute command in WSL (Windows) or shell (other OS)
-  wsl: <command>  - Same as above, shorthand version
+    # (wsl: prefix removed; just type 'wsl <command>' as needed)
 
 Keyboard Shortcuts:
   Ctrl+C          - Exit the application
@@ -106,12 +109,25 @@ General Usage:
 
     placeholder = reactive("Ready.")
 
+    def switch_input_mode(self, mode: str) -> None:
+        """Switch the input mode."""
+        available_modes = [item["name"] for item in self.input_modes]
+        if mode not in available_modes:
+            raise RuntimeError(f"Invalid mode: {mode} not in {available_modes}")
+
+        selected_mode = next(item for item in self.input_modes if item["name"] == mode)
+        self.log_view.append(f"Switching to {selected_mode['description']}")
+
+        self.input_mode = mode
+        self.input.border_title = f"{mode}:"
+        self.input.styles.border = ("heavy", selected_mode["color"])
+        self.input.value = ""
+
     def compose(self) -> ComposeResult:
         with Vertical():
             self.log_view = LogView()
             self.log_view.border_title = "Conch TUI"
             yield self.log_view
-            # Input is not in a container to keep it at the bottom
             self.input = Input(placeholder="Type and press Enter to send...", id="cmd")
             yield self.input
 
@@ -136,9 +152,21 @@ General Usage:
         if "--test" in sys.argv:
             asyncio.create_task(self._test_delayed_exit())
 
+        # Default mode is shell
+        self.input_mode = "sh"
+        self.switch_input_mode("sh")
+
     async def on_input_submitted(self, event: Input.Submitted) -> None:
         value = event.value.strip()
         if not value:
+            return
+
+        # Mode switching: ';' for shell, ':' for python
+        if value == ";":
+            self.switch_input_mode("sh")
+            return
+        if value == ":":
+            self.switch_input_mode("py")
             return
 
         # File reading: < filename
@@ -281,49 +309,51 @@ General Usage:
                 return
         # Echo command into the log
         self.log_view.append(f"> {value}")
-        # Handle shell commands: sh: and wsl:
-        if value.startswith("sh:"):
-            import shlex, subprocess
 
-            cmd = (
-                value.split(":", 1)[1].strip()
-                if ":" in value
-                else value[len("sh:") :].strip()
-            )
-            try:
-                args = shlex.split(cmd)
-                p = subprocess.run(args, capture_output=True, text=True, timeout=10)
-                out = p.stdout.strip() or p.stderr.strip() or f"(exit {p.returncode})"
-            except Exception as e:
-                out = f"[error] {e}"
-            for ln in out.splitlines() or ["(no output)"]:
-                self.log_view.append("  " + ln)
-        elif value.startswith("wsl:"):
-            import shlex, subprocess, platform
+        # Use input_mode to determine how to handle input
+        if self.input_mode == "sh":
+            # Handle shell commands: sh:
+            if value.startswith("sh:"):
+                import shlex, subprocess
 
-            cmd = (
-                value.split(":", 1)[1].strip()
-                if ":" in value
-                else value[len("wsl:") :].strip()
-            )
-            try:
-                if platform.system() == "Windows":
-                    # On Windows: run command in default WSL environment
-                    args = ["wsl"] + shlex.split(cmd)
-                else:
-                    # On other systems: forward to shell
+                cmd = (
+                    value.split(":", 1)[1].strip()
+                    if ":" in value
+                    else value[len("sh:") :].strip()
+                )
+                try:
                     args = shlex.split(cmd)
-                
-                p = subprocess.run(args, capture_output=True, text=True, timeout=10)
-                out = p.stdout.strip() or p.stderr.strip() or f"(exit {p.returncode})"
+                    p = subprocess.run(args, capture_output=True, text=True, timeout=10)
+                    out = p.stdout.strip() or p.stderr.strip() or f"(exit {p.returncode})"
+                except Exception as e:
+                    out = f"[error] {e}"
+                for ln in out.splitlines() or ["(no output)"]:
+                    self.log_view.append("  " + ln)
+            else:
+                # Treat as shell command
+                import shlex, subprocess
+                try:
+                    args = shlex.split(value)
+                    p = subprocess.run(args, capture_output=True, text=True, timeout=10)
+                    out = p.stdout.strip() or p.stderr.strip() or f"(exit {p.returncode})"
+                except Exception as e:
+                    out = f"[error] {e}"
+                for ln in out.splitlines() or ["(no output)"]:
+                    self.log_view.append("  " + ln)
+        elif self.input_mode == "py":
+            # Python mode: evaluate as Python code
+            import io
+            import contextlib
+            buf = io.StringIO()
+            try:
+                with contextlib.redirect_stdout(buf):
+                    exec(value, globals())
+                out = buf.getvalue().strip()
             except Exception as e:
                 out = f"[error] {e}"
             for ln in out.splitlines() or ["(no output)"]:
                 self.log_view.append("  " + ln)
-        else:
-            # For anything else, just echo a response
-            self.log_view.append(f"echo: {value}")
-
+        # (wsl: prefix removed; just type 'wsl <command>' as needed)
         # clear input
         self.input.value = ""
 
