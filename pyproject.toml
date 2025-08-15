@@ -5,8 +5,12 @@ description = "Add your description here"
 readme = "README.md"
 requires-python = ">=3.12"
 dependencies = [
+    "pyperclip>=1.9.0",
     "textual>=0.24",
 ]
+
+[project.scripts]
+conch = "conch.tui:main"
 
 [dependency-groups]
 dev = [

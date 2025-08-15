@@ -9,3 +9,5 @@ wheels/
 .vscode/
 # Virtual environments
 .venv
+
+kastor-*

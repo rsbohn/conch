@@ -15,6 +15,7 @@ import os
 from textual.message import Message
 from textual import events
 import signal
+import pyperclip
 
 
 class LogView(RichLog):
@@ -56,6 +57,7 @@ Available Commands:
   /q, /quit       - Exit the application
   /clear, /cls    - Clear the log display
   /lorem          - Add sample text for testing scrolling
+  /paste          - Append clipboard contents to the log
 
 File Commands:
   < filename      - Read and display file contents (e.g., "< README.md")
@@ -64,6 +66,8 @@ File Commands:
 Shell Commands:
   > sh: <command> - Execute a shell command (e.g., "> sh: ls -la")
   sh: <command>   - Same as above, shorthand version
+  > wsl: <command> - Execute command in WSL (Windows) or shell (other OS)
+  wsl: <command>  - Same as above, shorthand version
 
 Keyboard Shortcuts:
   Ctrl+C          - Exit the application
@@ -155,8 +159,7 @@ General Usage:
                     dir_title = os.path.basename(filename) or filename
                     self.log_view.set_title(dir_title)
 
-                    self.log_view.append(f"=== Contents of {filename} ===")
-                    self.log_view.append("")
+                    self.log_view.append(f"# {filename}")
 
                     # Get directory listing
                     try:
@@ -179,8 +182,7 @@ General Usage:
                             "Error: Permission denied reading directory"
                         )
 
-                    self.log_view.append("")
-                    self.log_view.append(f"=== End of {filename} ===")
+                    self.log_view.append("§§§")
 
                 else:
                     # Handle file reading (existing code)
@@ -194,15 +196,13 @@ General Usage:
                     file_title = os.path.basename(filename)
                     self.log_view.set_title(file_title)
 
-                    self.log_view.append(f"=== Contents of {filename} ===")
-                    self.log_view.append("")
+                    self.log_view.append(f"# {filename}")
 
                     # Add file contents line by line
                     for line in content.splitlines():
                         self.log_view.append(line)
 
-                    self.log_view.append("")
-                    self.log_view.append(f"=== End of {filename} ===")
+                    self.log_view.append("§§§")
 
             except FileNotFoundError:
                 self.log_view.append(f"Error: File or directory '{filename}' not found")
@@ -248,6 +248,20 @@ General Usage:
                 return
             if cmd == "lorem":
                 # Add lorem ipsum text for testing scrolling
+                self.log_view.append("Lorem ipsum dolor sit amet, consectetur adipiscing elit. " * 10)
+                self.input.value = ""
+                return
+            if cmd == "paste":
+                try:
+                    clipboard_text = pyperclip.paste()
+                    if clipboard_text:
+                        self.log_view.append(f"[clipboard]\n{clipboard_text}")
+                    else:
+                        self.log_view.append("[clipboard] No text in clipboard")
+                except Exception as e:
+                    self.log_view.append(f"[error] Clipboard access failed: {e}")
+                self.input.value = ""
+                return
                 lorem_text = [
                     "Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor",
                     "incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis",
@@ -267,8 +281,8 @@ General Usage:
                 return
         # Echo command into the log
         self.log_view.append(f"> {value}")
-        # A tiny simulated action: if starts with sh: run via subprocess
-        if value.startswith("> sh:") or value.startswith("sh:"):
+        # Handle shell commands: sh: and wsl:
+        if value.startswith("sh:"):
             import shlex, subprocess
 
             cmd = (
@@ -284,33 +298,36 @@ General Usage:
                 out = f"[error] {e}"
             for ln in out.splitlines() or ["(no output)"]:
                 self.log_view.append("  " + ln)
+        elif value.startswith("wsl:"):
+            import shlex, subprocess, platform
+
+            cmd = (
+                value.split(":", 1)[1].strip()
+                if ":" in value
+                else value[len("wsl:") :].strip()
+            )
+            try:
+                if platform.system() == "Windows":
+                    # On Windows: run command in default WSL environment
+                    args = ["wsl"] + shlex.split(cmd)
+                else:
+                    # On other systems: forward to shell
+                    args = shlex.split(cmd)
+                
+                p = subprocess.run(args, capture_output=True, text=True, timeout=10)
+                out = p.stdout.strip() or p.stderr.strip() or f"(exit {p.returncode})"
+            except Exception as e:
+                out = f"[error] {e}"
+            for ln in out.splitlines() or ["(no output)"]:
+                self.log_view.append("  " + ln)
         else:
             # For anything else, just echo a response
-            self.log_view.append(f"(echo) {value}")
+            self.log_view.append(f"echo: {value}")
 
         # clear input
         self.input.value = ""
 
-    async def on_key(self, event: events.Key) -> None:
-        # Ctrl+C quits the app (some environments don't deliver SIGINT to Textual)
-        if event.key == "c" and event.ctrl:
-            try:
-                res = self.exit()
-                if asyncio.iscoroutine(res):
-                    await res
-            except Exception:
-                try:
-                    res2 = self.action_quit()
-                    if asyncio.iscoroutine(res2):
-                        await res2
-                except Exception:
-                    pass
-            return
 
-        # Ctrl+L clears the log
-        if event.key == "l" and event.ctrl:
-            # use compatibility clear()
-            self.log_view.clear()
 
     async def _test_delayed_exit(self) -> None:
         """Test helper: wait 2 seconds then exit for --test flag."""
