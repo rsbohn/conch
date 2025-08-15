@@ -66,7 +66,7 @@ File Commands:
 Shell Commands:
   > sh: <command> - Execute a shell command (e.g., "> sh: ls -la")
   sh: <command>   - Same as above, shorthand version
-  > wsl: <command>- Execute command in WSL (Windows) or shell (other OS)
+  > wsl: <command> - Execute command in WSL (Windows) or shell (other OS)
   wsl: <command>  - Same as above, shorthand version
 
 Keyboard Shortcuts:
