@@ -15,6 +15,7 @@ import os
 from textual.message import Message
 from textual import events
 import signal
+import pyperclip
 
 
 class LogView(RichLog):
@@ -56,6 +57,7 @@ Available Commands:
   /q, /quit       - Exit the application
   /clear, /cls    - Clear the log display
   /lorem          - Add sample text for testing scrolling
+  /paste          - Append clipboard contents to the log
 
 File Commands:
   < filename      - Read and display file contents (e.g., "< README.md")
@@ -246,6 +248,20 @@ General Usage:
                 return
             if cmd == "lorem":
                 # Add lorem ipsum text for testing scrolling
+                self.log_view.append("Lorem ipsum dolor sit amet, consectetur adipiscing elit. " * 10)
+                self.input.value = ""
+                return
+            if cmd == "paste":
+                try:
+                    clipboard_text = pyperclip.paste()
+                    if clipboard_text:
+                        self.log_view.append(f"[clipboard]\n{clipboard_text}")
+                    else:
+                        self.log_view.append("[clipboard] No text in clipboard")
+                except Exception as e:
+                    self.log_view.append(f"[error] Clipboard access failed: {e}")
+                self.input.value = ""
+                return
                 lorem_text = [
                     "Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor",
                     "incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis",
@@ -311,26 +327,7 @@ General Usage:
         # clear input
         self.input.value = ""
 
-    async def on_key(self, event: events.Key) -> None:
-        # Ctrl+C quits the app (some environments don't deliver SIGINT to Textual)
-        if event.key == "c" and event.ctrl:
-            try:
-                res = self.exit()
-                if asyncio.iscoroutine(res):
-                    await res
-            except Exception:
-                try:
-                    res2 = self.action_quit()
-                    if asyncio.iscoroutine(res2):
-                        await res2
-                except Exception:
-                    pass
-            return
 
-        # Ctrl+L clears the log
-        if event.key == "l" and event.ctrl:
-            # use compatibility clear()
-            self.log_view.clear()
 
     async def _test_delayed_exit(self) -> None:
         """Test helper: wait 2 seconds then exit for --test flag."""
