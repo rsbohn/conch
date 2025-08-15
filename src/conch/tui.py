@@ -2,6 +2,7 @@
 
 Run this with `python -m conch.tui` or via the project's `main.py` entry.
 """
+
 from __future__ import annotations
 
 from textual.app import App, ComposeResult
@@ -26,7 +27,7 @@ class LogView(RichLog):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.can_focus = False  # LogView doesn't need focus
-        
+
     def append(self, text: str) -> None:
         """Add text to the log, automatically scrolling to bottom."""
         for ln in text.splitlines() or [""]:
@@ -35,7 +36,7 @@ class LogView(RichLog):
     def clear(self) -> None:
         """Clear all content from the log."""
         super().clear()
-        
+
     def set_title(self, title: str) -> None:
         """Set the border title for the log view."""
         self.border_title = title
@@ -114,7 +115,9 @@ General Usage:
         # Seed some example lines into the log
         self.log_view.append("conch TUI — large log + single-line input")
         self.log_view.append("")
-        self.log_view.append("Type commands below and press Enter. Press Ctrl+C to quit.")
+        self.log_view.append(
+            "Type commands below and press Enter. Press Ctrl+C to quit."
+        )
         # Hint for slash commands and quitting
         self.log_view.append("Type /help for available commands, or /q to quit.")
 
@@ -133,7 +136,7 @@ General Usage:
         value = event.value.strip()
         if not value:
             return
-        
+
         # File reading: < filename
         if value.startswith("< "):
             filename = value[2:].strip()
@@ -141,74 +144,80 @@ General Usage:
                 self.log_view.append("Error: No filename specified")
                 self.input.value = ""
                 return
-            
+
             try:
                 # Check if it's a directory
                 if os.path.isdir(filename):
                     # List directory contents
                     self.log_view.clear()
-                    
+
                     # Set title to just the directory name
                     dir_title = os.path.basename(filename) or filename
                     self.log_view.set_title(dir_title)
-                    
+
                     self.log_view.append(f"=== Contents of {filename} ===")
                     self.log_view.append("")
-                    
+
                     # Get directory listing
                     try:
                         entries = os.listdir(filename)
                         entries.sort()  # Sort alphabetically
-                        
+
                         if not entries:
                             self.log_view.append("(empty directory)")
                         else:
                             for entry in entries:
                                 entry_path = os.path.join(filename, entry)
                                 if os.path.isdir(entry_path):
-                                    self.log_view.append(f"{entry}/")  # Mark directories with /
+                                    self.log_view.append(
+                                        f"{entry}/"
+                                    )  # Mark directories with /
                                 else:
                                     self.log_view.append(entry)
                     except PermissionError:
-                        self.log_view.append("Error: Permission denied reading directory")
-                    
+                        self.log_view.append(
+                            "Error: Permission denied reading directory"
+                        )
+
                     self.log_view.append("")
                     self.log_view.append(f"=== End of {filename} ===")
-                    
+
                 else:
                     # Handle file reading (existing code)
-                    with open(filename, 'r', encoding='utf-8') as f:
+                    with open(filename, "r", encoding="utf-8") as f:
                         content = f.read()
-                    
+
                     # Clear log and show file contents
                     self.log_view.clear()
-                    
+
                     # Set title to just the filename (not the full path)
                     file_title = os.path.basename(filename)
                     self.log_view.set_title(file_title)
-                    
+
                     self.log_view.append(f"=== Contents of {filename} ===")
                     self.log_view.append("")
-                    
+
                     # Add file contents line by line
                     for line in content.splitlines():
                         self.log_view.append(line)
-                        
+
                     self.log_view.append("")
                     self.log_view.append(f"=== End of {filename} ===")
-                
+
             except FileNotFoundError:
                 self.log_view.append(f"Error: File or directory '{filename}' not found")
             except PermissionError:
                 self.log_view.append(f"Error: Permission denied accessing '{filename}'")
             except UnicodeDecodeError:
-                self.log_view.append(f"Error: Cannot decode '{filename}' as text (binary file?)")
+                self.log_view.append(
+                    f"Error: Cannot decode '{filename}' as text (binary file?)"
+                )
             except Exception as e:
                 self.log_view.append(f"Error accessing '{filename}': {e}")
-            
+
             self.input.value = ""
             return
-            
+
         # Slash commands: /q to quit, /clear to clear the log
         if value.startswith("/"):
             cmd = value[1:].strip().lower()
@@ -233,7 +242,7 @@ General Usage:
                 return
             if cmd == "help":
                 # Show help text
-                for line in self.HELP_TEXT.strip().split('\n'):
+                for line in self.HELP_TEXT.strip().split("\n"):
                     self.log_view.append(line)
                 self.input.value = ""  # Clear input after command
                 return
@@ -250,7 +259,7 @@ General Usage:
                     "laudantium, totam rem aperiam, eaque ipsa quae ab illo inventore veritatis et",
                     "quasi architecto beatae vitae dicta sunt explicabo. Nemo enim ipsam voluptatem",
                     "quia voluptas sit aspernatur aut odit aut fugit, sed quia consequuntur magni",
-                    "dolores eos qui ratione voluptatem sequi nesciunt."
+                    "dolores eos qui ratione voluptatem sequi nesciunt.",
                 ]
                 for line in lorem_text:
                     self.log_view.append(line)
@@ -262,7 +271,11 @@ General Usage:
         if value.startswith("> sh:") or value.startswith("sh:"):
             import shlex, subprocess
 
-            cmd = value.split(":", 1)[1].strip() if ":" in value else value[len("sh:"):].strip()
+            cmd = (
+                value.split(":", 1)[1].strip()
+                if ":" in value
+                else value[len("sh:") :].strip()
+            )
             try:
                 args = shlex.split(cmd)
                 p = subprocess.run(args, capture_output=True, text=True, timeout=10)
@@ -329,6 +342,7 @@ def main() -> None:
     # Install a SIGINT handler so Ctrl+C from Windows Terminal triggers a
     # shutdown even if Textual doesn't get the key event.
     try:
+
         def _sigint(signum, frame):
             try:
                 res = app.exit()
