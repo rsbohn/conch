@@ -196,7 +196,7 @@ General Usage:
 
         # File reading: < filename
         if value.startswith("< "):
-            filename = value[2].strip()
+            filename = value[1:].strip()
             if not filename:
                 self.log_view.append("Error: No filename specified")
                 self.input.value = ""
