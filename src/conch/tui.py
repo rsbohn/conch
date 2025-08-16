@@ -202,71 +202,33 @@ General Usage:
                 self.input.value = ""
                 return
 
-            try:
-                # Check if it's a directory
-                if os.path.isdir(filename):
-                    # List directory contents
-                    self.log_view.clear()
+            from .files import load_file, load_folder
 
-                    # Set title to just the directory name
-                    dir_title = os.path.basename(filename) or filename
-                    self.log_view.set_title(dir_title)
-
-                    self.log_view.append(f"# {filename}")
-
-                    # Get directory listing
-                    try:
-                        entries = os.listdir(filename)
-                        entries.sort()  # Sort alphabetically
-
-                        if not entries:
-                            self.log_view.append("(empty directory)")
-                        else:
-                            for entry in entries:
-                                entry_path = os.path.join(filename, entry)
-                                if os.path.isdir(entry_path):
-                                    self.log_view.append(
-                                        f"{entry}/"
-                                    )  # Mark directories with /
-                                else:
-                                    self.log_view.append(entry)
-                    except PermissionError:
-                        self.log_view.append(
-                            "Error: Permission denied reading directory"
-                        )
-
-                    self.log_view.append("§§§")
-
+            # Check if it's a directory
+            if os.path.isdir(filename):
+                self.log_view.clear()
+                dir_title = os.path.basename(filename) or filename
+                self.log_view.set_title(dir_title)
+                self.log_view.append(f"# {filename}")
+                entries, error = load_folder(filename)
+                if error:
+                    self.log_view.append(error)
                 else:
-                    # Handle file reading (existing code)
-                    with open(filename, "r", encoding="utf-8") as f:
-                        content = f.read()
-
-                    # Clear log and show file contents
-                    self.log_view.clear()
-
-                    # Set title to just the filename (not the full path)
-                    file_title = os.path.basename(filename)
-                    self.log_view.set_title(file_title)
-
-                    self.log_view.append(f"# {filename}")
-
-                    # Add file contents line by line
-                    for line in content.splitlines():
+                    for entry in entries:
+                        self.log_view.append(entry)
+                self.log_view.append("§§§")
+            else:
+                lines, error = load_file(filename)
+                self.log_view.clear()
+                file_title = os.path.basename(filename)
+                self.log_view.set_title(file_title)
+                self.log_view.append(f"# {filename}")
+                if error:
+                    self.log_view.append(error)
+                else:
+                    for line in lines:
                         self.log_view.append(line)
-
-                    self.log_view.append("§§§")
-
-            except FileNotFoundError:
-                self.log_view.append(f"Error: File or directory '{filename}' not found")
-            except PermissionError:
-                self.log_view.append(f"Error: Permission denied accessing '{filename}'")
-            except UnicodeDecodeError:
-                self.log_view.append(
-                    f"Error: Cannot decode '{filename}' as text (binary file?)"
-                )
-            except Exception as e:
-                self.log_view.append(f"Error accessing '{filename}': {e}")
+                self.log_view.append("§§§")
 
             self.input.value = ""
             return
