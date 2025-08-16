@@ -190,7 +190,7 @@ General Usage:
 
         # File reading: < filename
         if value.startswith("< "):
-            filename = value[2:].strip()
+            filename = value[2].strip()
             if not filename:
                 self.log_view.append("Error: No filename specified")
                 self.input.value = ""
@@ -347,6 +347,7 @@ General Usage:
                     out = f"[error] {e}"
                 for ln in out.splitlines() or ["(no output)"]:
                     self.log_view.append("  " + ln)
+
         elif self.input_mode == "py":
             # Python mode: evaluate as Python code
             import io
@@ -360,12 +361,16 @@ General Usage:
                 out = f"[error] {e}"
             for ln in out.splitlines() or ["(no output)"]:
                 self.log_view.append("  " + ln)
+
         elif self.input_mode == "ed":
             # Use Sam to process the command on the buffer
-            self.buffer = self.sam.exec(value, self.buffer)
+            # use `getattr` because older Textual versions may not have .text
+            buffer = [getattr(line, "text", line) for line in self.log_view.lines]
+            self.buffer = self.sam.exec(value, buffer)
             self.log_view.clear()
-            for ln in self.buffer.splitlines() or ["(empty)"]:
+            for ln in self.buffer:
                 self.log_view.append(ln)
+        
         # clear input
         self.input.value = ""
 
