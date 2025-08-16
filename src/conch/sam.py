@@ -38,8 +38,24 @@ class Sam:
         if cmd == "i":
             lines = text.splitlines()
             return (buffer[:addr-1] + lines + buffer[addr-1:], (addr-1, addr-1 + len(lines)))
+        if cmd == "m":
+            target = int(text) if text else -1
+            if 1 <= target <= len(buffer):
+                # Move the line at addr to the position at target
+                line_to_move = buffer[addr-1]
+                new_buffer = buffer[:addr-1] + buffer[addr:]
+                new_buffer.insert(target-1, line_to_move)
+                return (new_buffer, (target, target))
+            return (buffer, dot)  # If target is out of bounds, return unchanged
+        
         if cmd == "q":
             return (buffer[:addr], (addr, addr))
+        if cmd == "t":
+            target = int(text) if text else -1
+            hold = buffer[addr-1]
+            new_buffer = buffer[:target-1] + [hold] + buffer[target-1:]
+            return (new_buffer, (target, target))
+        
         # Add more commands here as needed
         # If command not recognized, return buffer unchanged
         return (buffer, (0, 0))

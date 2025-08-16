@@ -47,6 +47,24 @@ def test_sam_i():
     assert result == buffer[:dot_expected] + ["Hello"] + buffer[dot_expected:]
     assert dot == (dot_expected, dot_expected + 1)
 
+def test_sam_m():
+    buffer2 = ["a", "b", "c", "d"]
+    expected = ["a", "c", "d", "b"]
+    m = 2
+    n = 4
+    result, dot = sam.exec(f"{m}m{n}", buffer2)
+    dot_expected = n
+    assert result == expected
+    assert dot == (dot_expected, dot_expected)
+
+def test_sam_t():
+    # copy line
+    buffer2 = ["a","b","c"]
+    expected = ["a","b","c","a"]
+    result, dot = sam.exec("1t4", buffer2)
+    assert result == expected
+    assert dot == (4, 4)
+
 def test_sam_q():
     # cat tests/scratch.txt | sed '2q'
     result, dot = sam.exec("2q", buffer)
