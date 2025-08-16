@@ -82,7 +82,19 @@ General Usage:
   - The log area shows command output and responses
   - Use scroll or arrow keys to navigate through log history
 """
-
+    LOREM = [
+                    "Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor",
+                    "incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis",
+                    "nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat.",
+                    "Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore",
+                    "eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident,",
+                    "sunt in culpa qui officia deserunt mollit anim id est laborum. Sed ut",
+                    "perspiciatis unde omnis iste natus error sit voluptatem accusantium doloremque",
+                    "laudantium, totam rem aperiam, eaque ipsa quae ab illo inventore veritatis et",
+                    "quasi architecto beatae vitae dicta sunt explicabo. Nemo enim ipsam voluptatem",
+                    "quia voluptas sit aspernatur aut odit aut fugit, sed quia consequuntur magni",
+                    "dolores eos qui ratione voluptatem sequi nesciunt.",
+                ]
     CSS = """
     ConchTUI {
         background: black;
@@ -275,8 +287,8 @@ General Usage:
                 self.input.value = ""  # Clear input after command
                 return
             if cmd == "lorem":
-                # Add lorem ipsum text for testing scrolling
-                self.log_view.append("Lorem ipsum dolor sit amet, consectetur adipiscing elit. " * 10)
+                for line in self.LOREM:
+                    self.log_view.append(line)
                 self.input.value = ""
                 return
             if cmd == "paste":
@@ -290,19 +302,7 @@ General Usage:
                     self.log_view.append(f"[error] Clipboard access failed: {e}")
                 self.input.value = ""
                 return
-                lorem_text = [
-                    "Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor",
-                    "incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis",
-                    "nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat.",
-                    "Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore",
-                    "eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident,",
-                    "sunt in culpa qui officia deserunt mollit anim id est laborum. Sed ut",
-                    "perspiciatis unde omnis iste natus error sit voluptatem accusantium doloremque",
-                    "laudantium, totam rem aperiam, eaque ipsa quae ab illo inventore veritatis et",
-                    "quasi architecto beatae vitae dicta sunt explicabo. Nemo enim ipsam voluptatem",
-                    "quia voluptas sit aspernatur aut odit aut fugit, sed quia consequuntur magni",
-                    "dolores eos qui ratione voluptatem sequi nesciunt.",
-                ]
+
                 for line in lorem_text:
                     self.log_view.append(line)
                 self.input.value = ""  # Clear input after command
