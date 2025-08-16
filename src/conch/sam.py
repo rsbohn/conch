@@ -9,7 +9,7 @@ class Sam:
     def __init__(self):
         pass
 
-    def exec(self, command: str, buffer: list[str], dot=-1) -> list[str]:
+    def exec(self, command: str, buffer: list[str], dot=-1) -> tuple[list[str], tuple[int, int]]:
         """
         Execute a Sam command on the given buffer.
         Supports commands of the form [addr]K[text], where addr is an integer and K is a single letter.
@@ -24,18 +24,25 @@ class Sam:
             assert all(isinstance(line, str) for line in buffer), "Buffer must contain only strings"
         addr, cmd, text = self.parse_command(command)
         if addr < 1:
-            raise ValueError("Address must be greater than 0")
+            addr = 1  # Adjust to 1-based index
+        if addr > len(buffer):
+            addr = len(buffer)  # Adjust to buffer length
         if cmd == "a":
             lines = text.splitlines()
-            return buffer[:addr] + lines + buffer[addr:]
+            return (buffer[:addr] + lines + buffer[addr:], (addr, addr + len(lines)))
+        if cmd == 'c':
+            lines = text.splitlines() if text else [""]
+            return (buffer[:addr-1] + lines + buffer[addr:], (addr-1, addr-1 + len(lines)))
+        if cmd == "d":
+            return (buffer[:addr-1] + buffer[addr:], (addr-1, addr-1))
         if cmd == "i":
             lines = text.splitlines()
-            return buffer[:addr-1] + lines + buffer[addr-1:]
+            return (buffer[:addr-1] + lines + buffer[addr-1:], (addr-1, addr-1 + len(lines)))
         if cmd == "q":
-            return buffer[:addr]
+            return (buffer[:addr], (addr, addr))
         # Add more commands here as needed
         # If command not recognized, return buffer unchanged
-        return buffer
+        return (buffer, (0, 0))
 
     def parse_command(self,s:str) -> tuple[int, str, str]:
         """

@@ -102,7 +102,7 @@ General Usage:
     Vertical > LogView {
         height: 80%;
         border: round white;
-        border-title-align: center;
+        border-title-align: left;
         border-title-style: bold;
         border-title-color: cyan;
     }
@@ -137,6 +137,7 @@ General Usage:
         from .sam import Sam
         self.sam = Sam()
         self.buffer = ""  # Main text buffer for ed mode
+        self.dot = (0, 0)  # Cursor position in ed mode
         # TODO: Add history stack for undo functionality
 
     def compose(self) -> ComposeResult:
@@ -146,6 +147,11 @@ General Usage:
             yield self.log_view
             self.input = Input(placeholder="Type and press Enter to send...", id="cmd")
             yield self.input
+
+    def set_log_title(self, title: str=None) -> None:
+        if title is None:
+            title = str(self.dot)
+        self.log_view.border_title = f"Conch {title}"
 
     async def on_mount(self) -> None:
         # Seed some example lines into the log
@@ -310,10 +316,6 @@ General Usage:
                 self.input.value = ""
                 return
 
-                for line in lorem_text:
-                    self.log_view.append(line)
-                self.input.value = ""  # Clear input after command
-                return
         # Echo command into the log
         self.log_view.append(f"> {value}")
 
@@ -366,7 +368,9 @@ General Usage:
             # Use Sam to process the command on the buffer
             # use `getattr` because older Textual versions may not have .text
             buffer = [getattr(line, "text", line) for line in self.log_view.lines]
-            self.buffer = self.sam.exec(value, buffer)
+            self.buffer, new_dot = self.sam.exec(value, buffer, self.dot)
+            self.dot = new_dot  # Update dot position
+            self.set_log_title()  # Update log title with current dot position
             self.log_view.clear()
             for ln in self.buffer:
                 self.log_view.append(ln)
