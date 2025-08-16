@@ -53,6 +53,7 @@ class ConchTUI(App):
     input_modes = [
         {"name": "sh", "description": "Shell mode", "switch": ";", "color": "#44CC88"},
         {"name": "py", "description": "Python mode", "switch": ":", "color": "#CC8844"},
+        {"name": "ed", "description": "Sam mode", "switch": "/", "color": "#8844CC"},
     ]
     # Help text for the /help command
     HELP_TEXT = """
@@ -67,14 +68,10 @@ File Commands:
   < filename      - Read and display file contents (e.g., "< README.md")
   < directory     - List directory contents (e.g., "< src")
 
-Shell Commands:
-  > sh: <command> - Execute a shell command (e.g., "> sh: ls -la")
-  sh: <command>   - Same as above, shorthand version
-    # (wsl: prefix removed; just type 'wsl <command>' as needed)
-
-Keyboard Shortcuts:
-  Ctrl+C          - Exit the application
-  Ctrl+L          - Clear the log display
+Input Modalities
+  ; - shell command mode
+  : - python mode
+  / - sam (edit) mode
 
 General Usage:
   - Type commands in the input field at the bottom
@@ -135,6 +132,13 @@ General Usage:
         self.input.styles.border = ("heavy", selected_mode["color"])
         self.input.value = ""
 
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        from .sam import Sam
+        self.sam = Sam()
+        self.buffer = ""  # Main text buffer for ed mode
+        # TODO: Add history stack for undo functionality
+
     def compose(self) -> ComposeResult:
         with Vertical():
             self.log_view = LogView()
@@ -179,6 +183,9 @@ General Usage:
             return
         if value == ":":
             self.switch_input_mode("py")
+            return
+        if value == "/":
+            self.switch_input_mode("ed")
             return
 
         # File reading: < filename
@@ -353,7 +360,12 @@ General Usage:
                 out = f"[error] {e}"
             for ln in out.splitlines() or ["(no output)"]:
                 self.log_view.append("  " + ln)
-        # (wsl: prefix removed; just type 'wsl <command>' as needed)
+        elif self.input_mode == "ed":
+            # Use Sam to process the command on the buffer
+            self.buffer = self.sam.exec(value, self.buffer)
+            self.log_view.clear()
+            for ln in self.buffer.splitlines() or ["(empty)"]:
+                self.log_view.append(ln)
         # clear input
         self.input.value = ""
 
