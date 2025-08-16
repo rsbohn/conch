@@ -50,6 +50,18 @@ class Sam:
         
         if cmd == "q":
             return (buffer[:addr], (addr, addr))
+        
+        if cmd == "s":
+            if addr < 1 or addr > len(buffer):
+                return (buffer, dot)
+            if not text:
+                return (buffer, dot)
+            pattern, replacement = text.split("/")[1:3]
+            regex = re.compile(pattern)
+            new_buffer = buffer[:addr-1] + buffer[addr:]
+            new_buffer.insert(addr-1, regex.sub(replacement, buffer[addr-1]))
+            return (new_buffer, (addr, addr))
+        
         if cmd == "t":
             target = int(text) if text else -1
             hold = buffer[addr-1]

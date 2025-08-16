@@ -57,6 +57,13 @@ def test_sam_m():
     assert result == expected
     assert dot == (dot_expected, dot_expected)
 
+def test_sam_s():
+    buffer2 = ["a", "roberta", "bertram", "d"]
+    expected = ["a", "robina", "bertram", "d"]
+    result, dot = sam.exec("2s/bert/bin/", buffer2)
+    assert result == expected
+    assert dot == (2, 2)
+
 def test_sam_t():
     # copy line
     buffer2 = ["a","b","c"]
