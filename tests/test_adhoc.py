@@ -3,9 +3,11 @@ from textual.app import App, ComposeResult
 from textual.widgets import RichLog
 from conch.tui import LogView
 
+
 class AdhocApp(App):
     def compose(self) -> ComposeResult:
         yield LogView(id="log")
+
 
 @pytest.mark.asyncio
 async def test_logview_line_extraction():

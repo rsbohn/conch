@@ -80,18 +80,18 @@ General Usage:
   - Use scroll or arrow keys to navigate through log history
 """
     LOREM = [
-                    "Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor",
-                    "incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis",
-                    "nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat.",
-                    "Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore",
-                    "eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident,",
-                    "sunt in culpa qui officia deserunt mollit anim id est laborum. Sed ut",
-                    "perspiciatis unde omnis iste natus error sit voluptatem accusantium doloremque",
-                    "laudantium, totam rem aperiam, eaque ipsa quae ab illo inventore veritatis et",
-                    "quasi architecto beatae vitae dicta sunt explicabo. Nemo enim ipsam voluptatem",
-                    "quia voluptas sit aspernatur aut odit aut fugit, sed quia consequuntur magni",
-                    "dolores eos qui ratione voluptatem sequi nesciunt.",
-                ]
+        "Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor",
+        "incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis",
+        "nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat.",
+        "Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore",
+        "eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident,",
+        "sunt in culpa qui officia deserunt mollit anim id est laborum. Sed ut",
+        "perspiciatis unde omnis iste natus error sit voluptatem accusantium doloremque",
+        "laudantium, totam rem aperiam, eaque ipsa quae ab illo inventore veritatis et",
+        "quasi architecto beatae vitae dicta sunt explicabo. Nemo enim ipsam voluptatem",
+        "quia voluptas sit aspernatur aut odit aut fugit, sed quia consequuntur magni",
+        "dolores eos qui ratione voluptatem sequi nesciunt.",
+    ]
     CSS = """
     ConchTUI {
         background: black;
@@ -135,6 +135,7 @@ General Usage:
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         from .sam import Sam
+
         self.sam = Sam()
         self.buffer = ""  # Main text buffer for ed mode
         self.dot = (0, 0)  # Cursor position in ed mode
@@ -148,7 +149,7 @@ General Usage:
             self.input = Input(placeholder="Type and press Enter to send...", id="cmd")
             yield self.input
 
-    def set_log_title(self, title: str=None) -> None:
+    def set_log_title(self, title: str = None) -> None:
         if title is None:
             title = str(self.dot)
         self.log_view.border_title = f"Conch {title}"
@@ -295,7 +296,9 @@ General Usage:
                 try:
                     args = shlex.split(cmd)
                     p = subprocess.run(args, capture_output=True, text=True, timeout=10)
-                    out = p.stdout.strip() or p.stderr.strip() or f"(exit {p.returncode})"
+                    out = (
+                        p.stdout.strip() or p.stderr.strip() or f"(exit {p.returncode})"
+                    )
                 except Exception as e:
                     out = f"[error] {e}"
                 for ln in out.splitlines() or ["(no output)"]:
@@ -303,10 +306,13 @@ General Usage:
             else:
                 # Treat as shell command
                 import shlex, subprocess
+
                 try:
                     args = shlex.split(value)
                     p = subprocess.run(args, capture_output=True, text=True, timeout=10)
-                    out = p.stdout.strip() or p.stderr.strip() or f"(exit {p.returncode})"
+                    out = (
+                        p.stdout.strip() or p.stderr.strip() or f"(exit {p.returncode})"
+                    )
                 except Exception as e:
                     out = f"[error] {e}"
                 for ln in out.splitlines() or ["(no output)"]:
@@ -316,6 +322,7 @@ General Usage:
             # Python mode: evaluate as Python code
             import io
             import contextlib
+
             buf = io.StringIO()
             try:
                 with contextlib.redirect_stdout(buf):
@@ -336,11 +343,9 @@ General Usage:
             self.log_view.clear()
             for ln in self.buffer:
                 self.log_view.append(ln)
-        
+
         # clear input
         self.input.value = ""
-
-
 
     async def _test_delayed_exit(self) -> None:
         """Test helper: wait 2 seconds then exit for --test flag."""

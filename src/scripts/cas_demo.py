@@ -11,11 +11,13 @@ This script demonstrates basic usage of the CAS class:
 - List pins
 - Unpin content
 """
+
 import os
 import tempfile
 from conch.cas import CAS
 import shutil
 import sqlite3
+
 
 def main():
     # Create a temporary CAS root
@@ -58,6 +60,7 @@ def main():
     # Cleanup
     shutil.rmtree(cas_root)
     print("Cleaned up CAS root.")
+
 
 if __name__ == "__main__":
     main()

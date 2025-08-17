@@ -5,6 +5,7 @@ Pathish = Union[str, os.PathLike]
 
 ResultWithErrorStr: TypeAlias = Tuple[Optional[List[str]], Optional[str]]
 
+
 def load_file(filename: Pathish) -> ResultWithErrorStr:
     """Read a file and return its contents as a list of lines.
 

@@ -36,6 +36,7 @@ def test_directory_listing_creates_entries(tmp_path):
     assert "subdir/" in displayed
     assert "file1.txt" in displayed
 
+
 def test_read_file_contents(tmp_path):
     # create a temp file
     filepath = tmp_path / "file1.txt"
@@ -45,6 +46,7 @@ def test_read_file_contents(tmp_path):
     contents, err = fs.load_file(filepath)
     assert contents == ["hello world"]
     assert err is None
+
 
 def test_read_folder(tmp_path):
     # create a temp directory with files
