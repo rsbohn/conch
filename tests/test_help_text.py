@@ -13,4 +13,7 @@ def test_help_contains_commands():
     assert "/help" in help_text
     assert "< filename" in help_text
     assert "< directory" in help_text
-    assert "Ctrl+C" in help_text
+    # Boundary tests
+    assert "Ctrl+C" not in help_text  # Removed command should not be present
+    assert help_text.strip() != ""  # Help text should not be empty
+    assert "  " in help_text  # Help text should contain some whitespace for formatting
