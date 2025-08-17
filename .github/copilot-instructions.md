@@ -18,6 +18,7 @@
 ## Preferred Libraries
 The following libraries are preferred and commonly used in this codebase:
 
+- **httpx**: For making HTTP requests.
 - **textual**: For building terminal user interfaces (TUI).
 - **pyperclip**: For clipboard access and manipulation.
 - **pytest**: For writing and running tests.
