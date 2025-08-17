@@ -5,17 +5,20 @@ Run this with `python -m conch.tui` or via the project's `main.py` entry.
 
 from __future__ import annotations
 
-from textual.app import App, ComposeResult
-from textual.containers import Vertical
-from textual.widgets import Input, RichLog
 import asyncio
-from textual.reactive import reactive
 import sys
 import os
-from textual.message import Message
-from textual import events
 import signal
+from textual import events
+from textual.app import App, ComposeResult
+from textual.containers import Vertical
+from textual.message import Message
+from textual.reactive import reactive
+from textual.widgets import Input, RichLog
 import pyperclip
+import textwrap
+from .anthropic import AnthropicClient
+from .sam import Sam
 
 
 class LogView(RichLog):
@@ -54,6 +57,7 @@ class ConchTUI(App):
         {"name": "sh", "description": "Shell mode", "switch": ";", "color": "#44CC88"},
         {"name": "py", "description": "Python mode", "switch": ":", "color": "#CC8844"},
         {"name": "ed", "description": "Sam mode", "switch": "/", "color": "#8844CC"},
+        {"name": "ai", "description": "AI mode", "switch": "[", "color": "#729785"}
     ]
     # Help text for the /help command
     HELP_TEXT = """
@@ -134,8 +138,8 @@ General Usage:
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        from .sam import Sam
 
+        self.ai_model = AnthropicClient()  # Initialize the AI model client
         self.sam = Sam()
         self.buffer = ""  # Main text buffer for ed mode
         self.dot = (0, 0)  # Cursor position in ed mode
@@ -193,6 +197,9 @@ General Usage:
             return
         if value == "/":
             self.switch_input_mode("ed")
+            return
+        if value == "[":
+            self.switch_input_mode("ai")
             return
 
         # File reading: < filename
@@ -279,6 +286,19 @@ General Usage:
                 self.input.value = ""
                 return
 
+        if self.input_mode == "ed":
+            # Use Sam to process the command on the buffer
+            # use `getattr` because older Textual versions may not have .text
+            buffer = [getattr(line, "text", line) for line in self.log_view.lines]
+            self.buffer, new_dot = self.sam.exec(value, buffer, self.dot)
+            self.dot = new_dot  # Update dot position
+            self.set_log_title()  # Update log title with current dot position
+            self.log_view.clear()
+            for ln in self.buffer:
+                self.log_view.append(ln)
+            self.input.value = ""  # Clear input after command
+            return
+        
         # Echo command into the log
         self.log_view.append(f"> {value}")
 
@@ -333,16 +353,13 @@ General Usage:
             for ln in out.splitlines() or ["(no output)"]:
                 self.log_view.append("  " + ln)
 
-        elif self.input_mode == "ed":
-            # Use Sam to process the command on the buffer
-            # use `getattr` because older Textual versions may not have .text
-            buffer = [getattr(line, "text", line) for line in self.log_view.lines]
-            self.buffer, new_dot = self.sam.exec(value, buffer, self.dot)
-            self.dot = new_dot  # Update dot position
-            self.set_log_title()  # Update log title with current dot position
-            self.log_view.clear()
-            for ln in self.buffer:
-                self.log_view.append(ln)
+        elif self.input_mode == "ai":
+            # AI mode: send the prompt to the AI model
+            # Print the response
+            response = self.ai_model.oneshot(value)
+            for ln in response.splitlines() or ["(no output)"]:
+                for wrapped_ln in textwrap.wrap(ln, width=72) or [""]:
+                    self.log_view.append("  " + wrapped_ln)
 
         # clear input
         self.input.value = ""
@@ -373,6 +390,12 @@ General Usage:
 
 
 def main() -> None:
+    """Main entry point to run the Conch TUI application."""
+    if not os.environ.get("keyfile"):
+        print("Error: keyfile environment variable not set.")
+        print("    $env:keyfile = /path/to/your/keyfile")
+        print("    export keyfile=/path/to/your/keyfile")
+        sys.exit(1)
     app = ConchTUI()
     # Install a SIGINT handler so Ctrl+C from Windows Terminal triggers a
     # shutdown even if Textual doesn't get the key event.
