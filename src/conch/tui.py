@@ -151,16 +151,15 @@ General Usage:
             self.log_view = LogView()
             self.log_view.border_title = "Conch TUI"
             yield self.log_view
-            if self.busy:
-                yield LoadingIndicator(id="busy-indicator", color="cyan")
-            else:
-                yield Static(">>>")
+            self.busy_indicator = Static(":idle", id="busy-indicator")
+            yield self.busy_indicator
             self.input = Input(placeholder="Type and press Enter to send...", id="cmd")
             yield self.input
             yield Footer()
 
     def set_busy(self, value: bool) -> None:
         self.busy = value
+        self.busy_indicator.update(":busy" if value else ":idle")
         self.refresh()
 
     def set_log_title(self, title: str = None) -> None:
@@ -367,7 +366,7 @@ General Usage:
             # AI mode: send the prompt to the AI model
             # Print the response
             self.set_busy(True)  # Set busy state while waiting for AI response
-            response = self.ai_model.oneshot(value)
+            response = await self.ai_model.oneshot(value)
             for ln in response.splitlines() or ["(no output)"]:
                 for wrapped_ln in textwrap.wrap(ln, width=72) or [""]:
                     self.log_view.append("  " + wrapped_ln)

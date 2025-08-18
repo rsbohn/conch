@@ -14,11 +14,11 @@ class AnthropicClient:
     def __init__(self, api_key: Optional[str] = None):
         self.api_key = api_key or get_anthropic_key()
 
-    def oneshot(
+    async def oneshot(
         self, prompt: str, model: str = DEFAULT_MODEL, max_tokens: int = 512
     ) -> Optional[str]:
         """
-        Send a single prompt to Claude and return the response.
+        Send a single prompt to Claude and return the response (async).
         """
         if not self.api_key:
             raise ValueError("Anthropic API key not found.")
@@ -32,9 +32,10 @@ class AnthropicClient:
             "max_tokens": max_tokens,
             "messages": [{"role": "user", "content": prompt}],
         }
-        response = httpx.post(API_URL, json=data, headers=headers, timeout=30)
-        response.raise_for_status()
-        result = response.json()
+        async with httpx.AsyncClient(timeout=30) as client:
+            response = await client.post(API_URL, json=data, headers=headers)
+            response.raise_for_status()
+            result = response.json()
         # Claude's response is in result['content'][0]['text'] for this API
         try:
             return result["content"][0]["text"]
