@@ -13,7 +13,7 @@ class Sam:
         pass
 
     def exec(
-        self, command: str, buffer: list[str], dot=-1
+        self, command: str, buffer: list[str], dot: tuple[int, int]
     ) -> tuple[list[str], tuple[int, int]]:
         """
         Execute a Sam command on the given buffer.
@@ -29,11 +29,16 @@ class Sam:
             assert all(
                 isinstance(line, str) for line in buffer
             ), "Buffer must contain only strings"
-        addr, cmd, text = self.parse_command(command)
-        if addr < 1:
+        addr, cmd, text = self.parse_command(command, dot)
+        if addr == 0:
             addr = 1  # Adjust to 1-based index
+        if addr < 0:
+            addr = len(buffer) - addr  # Negative index means from the end
         if addr > len(buffer):
             addr = len(buffer)  # Adjust to buffer length
+        if cmd == ".":
+            # No-op. Use to move the dot.
+            return (buffer, (addr-1, addr))
         if cmd == "a":
             lines = text.splitlines()
             return (buffer[:addr] + lines + buffer[addr:], (addr, addr + len(lines)))
@@ -89,14 +94,20 @@ class Sam:
         # If command not recognized, return buffer unchanged
         return (buffer, (0, 0))
 
-    def parse_command(self, s: str) -> tuple[int, str, str]:
+    def parse_command(self, s: str, dot: tuple[int,int] = (-1,-1)) -> tuple[int, str, str]:
         """
         Parse a Sam command string into its components.
         Returns a tuple of (address, command, text).
         """
-        m = re.match(r"^(\d+)([a-zA-Z])(.*)?$", s.strip())
+        # Special case for '..'
+        if s.strip() == '..':
+            return dot[0]+1, '.', ''
+        m = re.match(r"^(\$|\d+)([a-zA-Z\.])(.*)?$", s.strip())
         if m:
-            addr = int(m.group(1))
+            if m.group(1) == "$":
+                addr = -1
+            else:
+                addr = int(m.group(1))
             cmd = m.group(2)
             text = m.group(3) if m.group(3) else ""
             return addr, cmd, text
