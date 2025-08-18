@@ -14,7 +14,7 @@ from textual.app import App, ComposeResult
 from textual.containers import Vertical
 from textual.message import Message
 from textual.reactive import reactive
-from textual.widgets import Input, RichLog
+from textual.widgets import Input, RichLog, LoadingIndicator, Static, Footer
 import pyperclip
 import textwrap
 from .anthropic import AnthropicClient
@@ -139,6 +139,7 @@ General Usage:
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
 
+        self.busy = False  # Flag to indicate if the app is busy
         self.ai_model = AnthropicClient()  # Initialize the AI model client
         self.sam = Sam()
         self.buffer = ""  # Main text buffer for ed mode
@@ -150,8 +151,17 @@ General Usage:
             self.log_view = LogView()
             self.log_view.border_title = "Conch TUI"
             yield self.log_view
+            if self.busy:
+                yield LoadingIndicator(id="busy-indicator", color="cyan")
+            else:
+                yield Static(">>>")
             self.input = Input(placeholder="Type and press Enter to send...", id="cmd")
             yield self.input
+            yield Footer()
+
+    def set_busy(self, value: bool) -> None:
+        self.busy = value
+        self.refresh()
 
     def set_log_title(self, title: str = None) -> None:
         if title is None:
@@ -356,10 +366,12 @@ General Usage:
         elif self.input_mode == "ai":
             # AI mode: send the prompt to the AI model
             # Print the response
+            self.set_busy(True)  # Set busy state while waiting for AI response
             response = self.ai_model.oneshot(value)
             for ln in response.splitlines() or ["(no output)"]:
                 for wrapped_ln in textwrap.wrap(ln, width=72) or [""]:
                     self.log_view.append("  " + wrapped_ln)
+            self.set_busy(False)  # Reset busy state after getting AI response
 
         # clear input
         self.input.value = ""
