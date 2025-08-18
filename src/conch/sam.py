@@ -56,7 +56,7 @@ class Sam:
                 line_to_move = buffer[addr - 1]
                 new_buffer = buffer[: addr - 1] + buffer[addr:]
                 new_buffer.insert(target - 1, line_to_move)
-                return (new_buffer, (target, target))
+                return (new_buffer, (target-1, target))
             return (buffer, dot)  # If target is out of bounds, return unchanged
 
         if cmd == "q":
@@ -71,7 +71,7 @@ class Sam:
             regex = re.compile(pattern)
             new_buffer = buffer[: addr - 1] + buffer[addr:]
             new_buffer.insert(addr - 1, regex.sub(replacement, buffer[addr - 1]))
-            return (new_buffer, (addr, addr))
+            return (new_buffer, (addr-1, addr))
 
         if cmd == "t":
             target = int(text) if text else -1

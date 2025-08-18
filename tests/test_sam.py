@@ -59,9 +59,9 @@ def test_sam_m():
     m = 2
     n = 4
     result, dot = sam.exec(f"{m}m{n}", buffer2)
-    dot_expected = n
+    dot_expected = n-1
     assert result == expected
-    assert dot == (dot_expected, dot_expected)
+    assert dot == (dot_expected, dot_expected+1)
 
 
 def test_sam_s():
@@ -69,7 +69,7 @@ def test_sam_s():
     expected = ["a", "robina", "bertram", "d"]
     result, dot = sam.exec("2s/bert/bin/", buffer2)
     assert result == expected
-    assert dot == (2, 2)
+    assert dot == (1, 2)
 
 
 def test_sam_t():

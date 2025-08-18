@@ -9,6 +9,7 @@ import asyncio
 import sys
 import os
 import signal
+from rich.text import Text
 from textual import events
 from textual.app import App, ComposeResult
 from textual.containers import Vertical
@@ -56,8 +57,8 @@ class ConchTUI(App):
     input_modes = [
         {"name": "sh", "description": "Shell mode", "switch": ";", "color": "#44CC88"},
         {"name": "py", "description": "Python mode", "switch": ":", "color": "#CC8844"},
-        {"name": "ed", "description": "Sam mode", "switch": "/", "color": "#8844CC"},
-        {"name": "ai", "description": "AI mode", "switch": "[", "color": "#729785"}
+        {"name": "ed", "description": "Sam mode", "switch": "/", "color": "#A692C9"},
+        {"name": "ai", "description": "AI mode", "switch": "[", "color": "#729789"}
     ]
     # Help text for the /help command
     HELP_TEXT = """
@@ -163,8 +164,10 @@ General Usage:
         self.refresh()
 
     def set_log_title(self, title: str = None) -> None:
+        a = self.dot[0] + 1  # Convert to 1-based index for display
+        b = self.dot[1] + 1  # Convert to 1-based index for display
         if title is None:
-            title = str(self.dot)
+            title = str((a,b))
         self.log_view.border_title = f"Conch {title}"
 
     async def on_mount(self) -> None:
@@ -299,12 +302,15 @@ General Usage:
             # Use Sam to process the command on the buffer
             # use `getattr` because older Textual versions may not have .text
             buffer = [getattr(line, "text", line) for line in self.log_view.lines]
+            mode_color = next((item["color"] for item in self.input_modes if item["name"] == self.input_mode), "#729789")
             self.buffer, new_dot = self.sam.exec(value, buffer, self.dot)
             self.dot = new_dot  # Update dot position
             self.set_log_title()  # Update log title with current dot position
             self.log_view.clear()
-            for ln in self.buffer:
-                self.log_view.append(ln)
+            for i, line in enumerate(self.buffer):
+                if i == self.dot[0]:
+                    line = Text(line, style=f"black on {mode_color}")
+                self.log_view.write(line)
             self.input.value = ""  # Clear input after command
             return
         
