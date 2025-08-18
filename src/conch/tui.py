@@ -19,7 +19,7 @@ from textual.widgets import Input, RichLog, LoadingIndicator, Static, Footer
 import pyperclip
 import textwrap
 from .anthropic import AnthropicClient
-from .sam import Sam
+from .sam import Sam, SamParseError
 
 
 class LogView(RichLog):
@@ -340,9 +340,12 @@ General Usage:
         if self.input_mode == "ed":
             # Use Sam to process the command on the buffer
             buffer = [getattr(line, "text", line) for line in self.log_view.lines]
-            self.buffer, self.dot = self.sam.exec(value, buffer, self.dot)
-            self.render_buffer()
-            self.input.value = ""  # Clear input after command
+            try:
+                self.buffer, self.dot = self.sam.exec(value, buffer, self.dot)
+                self.render_buffer()
+                self.input.value = ""  # Clear input after command
+            except SamParseError as e:
+                self.log_view.append(f"SamParseError: {e}")
             return
         
         # Echo command into the log

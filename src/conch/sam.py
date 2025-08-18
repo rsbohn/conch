@@ -5,6 +5,8 @@ IMPORTANT: Respect the contract: List[str] in, List[str] out
 """
 import re
 
+class SamParseError(Exception):
+    pass
 
 class Sam:
     def __init__(self):
@@ -67,11 +69,15 @@ class Sam:
                 return (buffer, dot)
             if not text:
                 return (buffer, dot)
-            pattern, replacement = text.split("/")[1:3]
-            regex = re.compile(pattern)
-            new_buffer = buffer[: addr - 1] + buffer[addr:]
-            new_buffer.insert(addr - 1, regex.sub(replacement, buffer[addr - 1]))
-            return (new_buffer, (addr-1, addr))
+            try:
+                pattern, replacement = text.split("/")[1:3]
+                regex = re.compile(pattern)
+                new_buffer = buffer[: addr - 1] + buffer[addr:]
+                new_buffer.insert(addr - 1, regex.sub(replacement, buffer[addr - 1]))
+                return (new_buffer, (addr-1, addr))
+            # need some way to reflect the error in TUI
+            except Exception as e:
+                raise SamParseError(f"Failed to parse command: {e}")
 
         if cmd == "t":
             target = int(text) if text else -1
