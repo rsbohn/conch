@@ -83,6 +83,7 @@ General Usage:
   - Press Enter to execute
   - The log area shows command output and responses
   - Use scroll or arrow keys to navigate through log history
+  - Use up/down arrow keys to move the dot and highlight the line
 """
     LOREM = [
         "Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor",
@@ -119,7 +120,11 @@ General Usage:
     }
     """
 
-    BINDINGS = [("ctrl+c", "quit", "Quit")]
+    BINDINGS = [
+        ("ctrl+c", "quit", "Quit"),
+        ("up", "move_up", "Dot up"),
+        ("down", "move_down", "Dot down"),
+    ]
 
     placeholder = reactive("Ready.")
 
@@ -143,8 +148,8 @@ General Usage:
         self.busy = False  # Flag to indicate if the app is busy
         self.ai_model = AnthropicClient()  # Initialize the AI model client
         self.sam = Sam()
-        self.buffer = ""  # Main text buffer for ed mode
-        self.dot = (0, 0)  # Cursor position in ed mode
+        self.buffer: list[str] = []  # Main text buffer for log contents
+        self.dot = (0, 0)  # Cursor position in log
         # TODO: Add history stack for undo functionality
 
     def compose(self) -> ComposeResult:
@@ -169,6 +174,40 @@ General Usage:
         if title is None:
             title = str((a,b))
         self.log_view.border_title = f"Conch {title}"
+
+    def render_buffer(self) -> None:
+        """Render current buffer highlighting the dot."""
+        if not self.buffer:
+            # Capture current log view lines if buffer is empty
+            self.buffer = [getattr(line, "text", str(line)) for line in self.log_view.lines]
+
+        mode_name = getattr(self, "input_mode", "sh")
+        mode_color = next(
+            (item["color"] for item in self.input_modes if item["name"] == mode_name),
+            "#729789",
+        )
+        self.log_view.clear()
+        for i, line in enumerate(self.buffer):
+            if i == self.dot[0]:
+                self.log_view.write(Text(line, style=f"black on {mode_color}"))
+            else:
+                self.log_view.write(line)
+        self.set_log_title()
+
+    def move_dot(self, delta: int) -> None:
+        """Move the dot up or down by delta lines and refresh display."""
+        self.buffer = [getattr(line, "text", str(line)) for line in self.log_view.lines]
+        if not self.buffer:
+            return
+        new_line = max(0, min(self.dot[0] + delta, len(self.buffer) - 1))
+        self.dot = (new_line, min(self.dot[1], len(self.buffer[new_line])))
+        self.render_buffer()
+
+    def action_move_up(self) -> None:
+        self.move_dot(-1)
+
+    def action_move_down(self) -> None:
+        self.move_dot(1)
 
     async def on_mount(self) -> None:
         # Seed some example lines into the log
@@ -300,17 +339,9 @@ General Usage:
 
         if self.input_mode == "ed":
             # Use Sam to process the command on the buffer
-            # use `getattr` because older Textual versions may not have .text
             buffer = [getattr(line, "text", line) for line in self.log_view.lines]
-            mode_color = next((item["color"] for item in self.input_modes if item["name"] == self.input_mode), "#729789")
-            self.buffer, new_dot = self.sam.exec(value, buffer, self.dot)
-            self.dot = new_dot  # Update dot position
-            self.set_log_title()  # Update log title with current dot position
-            self.log_view.clear()
-            for i, line in enumerate(self.buffer):
-                if i == self.dot[0]:
-                    line = Text(line, style=f"black on {mode_color}")
-                self.log_view.write(line)
+            self.buffer, self.dot = self.sam.exec(value, buffer, self.dot)
+            self.render_buffer()
             self.input.value = ""  # Clear input after command
             return
         
