@@ -99,9 +99,15 @@ class Sam:
         Parse a Sam command string into its components.
         Returns a tuple of (address, command, text).
         """
-        # Special case for '..'
-        if s.strip() == '..':
-            return dot[0]+1, '.', ''
+        # Special case for '^.'
+        if s.startswith("."):
+            addr = dot[0] + 1  # Use current line number
+            cmd = s[1] if len(s) > 1 else '.'
+            text = ''
+            if len(s) > 2:
+                text = s[2:]
+            return addr, cmd, text
+
         m = re.match(r"^(\$|\d+)([a-zA-Z\.])(.*)?$", s.strip())
         if m:
             if m.group(1) == "$":

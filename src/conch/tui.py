@@ -128,20 +128,6 @@ General Usage:
 
     placeholder = reactive("Ready.")
 
-    def switch_input_mode(self, mode: str) -> None:
-        """Switch the input mode."""
-        available_modes = [item["name"] for item in self.input_modes]
-        if mode not in available_modes:
-            raise RuntimeError(f"Invalid mode: {mode} not in {available_modes}")
-
-        selected_mode = next(item for item in self.input_modes if item["name"] == mode)
-        self.log_view.append(f"Switching to {selected_mode['description']}")
-
-        self.input_mode = mode
-        self.input.border_title = f"{mode}:"
-        self.input.styles.border = ("heavy", selected_mode["color"])
-        self.input.value = ""
-
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
 
@@ -151,6 +137,19 @@ General Usage:
         self.buffer: list[str] = []  # Main text buffer for log contents
         self.dot = (0, 0)  # Cursor position in log
         # TODO: Add history stack for undo functionality
+    
+    def switch_input_mode(self, mode: str) -> None:
+        """Switch the input mode."""
+        available_modes = [item["name"] for item in self.input_modes]
+        if mode not in available_modes:
+            raise RuntimeError(f"Invalid mode: {mode} not in {available_modes}")
+
+        selected_mode = next(item for item in self.input_modes if item["name"] == mode)
+        self.input_mode = mode
+        self.input.border_title = f"{mode}:"
+        self.input.styles.border = ("heavy", selected_mode["color"])
+        self.input.value = ""
+
 
     def compose(self) -> ComposeResult:
         with Vertical():
