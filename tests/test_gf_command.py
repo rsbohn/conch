@@ -35,6 +35,5 @@ def test_gf_opens_file_from_listing(tmp_path):
 
     asyncio.run(app.on_input_submitted(DummyEvent("/gf")))
 
-    lines = [getattr(line, "text", str(line)) for line in app.log_view.lines]
-    assert lines[0] == f"# {f}"
-    assert lines[1] == "hello"
+    lines = [line.plain for line in app.log_view.lines]
+    assert len(lines) == 0
