@@ -72,6 +72,7 @@ Available Commands:
 File Commands:
   < filename      - Read and display file contents (e.g., "< README.md")
   < directory     - List directory contents (e.g., "< src")
+  /gf             - Goto file at current dot
 
 Input Modalities
   ; - shell command mode
@@ -208,6 +209,41 @@ General Usage:
     def action_move_down(self) -> None:
         self.move_dot(1)
 
+    def _read_path(self, filename: str) -> bool:
+        """Load a file or directory into the log view.
+
+        Returns True on success, False if an error occurred."""
+        from .files import load_file, load_folder
+
+        if os.path.isdir(filename):
+            entries, error = load_folder(filename)
+            self.log_view.clear()
+            dir_title = os.path.basename(filename) or filename
+            self.log_view.set_title(dir_title)
+            self.log_view.append(f"# {filename}")
+            if error:
+                self.log_view.append(error)
+                self.log_view.append("§§§")
+                return False
+            for entry in entries:
+                self.log_view.append(entry)
+            self.log_view.append("§§§")
+            return True
+        else:
+            lines, error = load_file(filename)
+            self.log_view.clear()
+            file_title = os.path.basename(filename)
+            self.log_view.set_title(file_title)
+            self.log_view.append(f"# {filename}")
+            if error:
+                self.log_view.append(error)
+                self.log_view.append("§§§")
+                return False
+            for line in lines:
+                self.log_view.append(line)
+            self.log_view.append("§§§")
+            return True
+
     async def on_mount(self) -> None:
         # Hint for slash commands and quitting
         self.log_view.append("Type /help for available commands, or /q to quit.")
@@ -254,34 +290,7 @@ General Usage:
                 self.input.value = ""
                 return
 
-            from .files import load_file, load_folder
-
-            # Check if it's a directory
-            if os.path.isdir(filename):
-                self.log_view.clear()
-                dir_title = os.path.basename(filename) or filename
-                self.log_view.set_title(dir_title)
-                self.log_view.append(f"# {filename}")
-                entries, error = load_folder(filename)
-                if error:
-                    self.log_view.append(error)
-                else:
-                    for entry in entries:
-                        self.log_view.append(entry)
-                self.log_view.append("§§§")
-            else:
-                lines, error = load_file(filename)
-                self.log_view.clear()
-                file_title = os.path.basename(filename)
-                self.log_view.set_title(file_title)
-                self.log_view.append(f"# {filename}")
-                if error:
-                    self.log_view.append(error)
-                else:
-                    for line in lines:
-                        self.log_view.append(line)
-                self.log_view.append("§§§")
-
+            self._read_path(filename)
             self.input.value = ""
             return
 
@@ -339,6 +348,28 @@ General Usage:
                         self.log_view.append("[clipboard] No text in clipboard")
                 except Exception as e:
                     self.log_view.append(f"[error] Clipboard access failed: {e}")
+                self.input.value = ""
+                return
+            if cmd == "gf":
+                buffer = [getattr(line, "text", str(line)) for line in self.log_view.lines]
+                if self.dot[0] < len(buffer):
+                    filename = buffer[self.dot[0]].strip()
+                    if os.path.exists(filename):
+                        self._read_path(filename)
+                    elif self.dot[0] != 0:
+                        base = buffer[0].strip()
+                        if base.startswith("#"):
+                            base = base[1:].strip()
+                        if base and os.path.exists(base):
+                            candidate = os.path.join(base, filename)
+                            if os.path.exists(candidate):
+                                self._read_path(candidate)
+                            else:
+                                self.log_view.append(f"Error: File '{filename}' not found")
+                        else:
+                            self.log_view.append(f"Error: File '{filename}' not found")
+                    else:
+                        self.log_view.append(f"Error: File '{filename}' not found")
                 self.input.value = ""
                 return
 
