@@ -18,7 +18,7 @@ from textual.reactive import reactive
 from textual.widgets import Input, RichLog, LoadingIndicator, Static, Footer
 import pyperclip
 import textwrap
-from .anthropic import AnthropicClient
+from .anthropic import AnthropicClient, DEFAULT_MODEL
 from .sam import Sam, SamParseError
 
 
@@ -30,21 +30,38 @@ class LogView(RichLog):
     """
 
     def __init__(self, *args, **kwargs):
+        self._lines_buf: list[object] = []
         super().__init__(*args, **kwargs)
         self.can_focus = False  # LogView doesn't need focus
 
     def append(self, text: str) -> None:
         """Add text to the log, automatically scrolling to bottom."""
         for ln in text.splitlines() or [""]:
-            self.write(ln)
+            if not getattr(self, "_size_known", False):
+                self.lines.append(ln)
+                try:
+                    self.write(ln)
+                except Exception:
+                    pass
+            else:
+                self.write(ln)
 
     def clear(self) -> None:
         """Clear all content from the log."""
         super().clear()
+        self.lines = []
 
     def set_title(self, title: str) -> None:
         """Set the border title for the log view."""
         self.border_title = title
+
+    @property
+    def lines(self) -> list[object]:  # type: ignore[override]
+        return self._lines_buf
+
+    @lines.setter
+    def lines(self, value: list[object]) -> None:  # type: ignore[override]
+        self._lines_buf = list(value)
 
 
 class Submit(Message):
@@ -68,6 +85,7 @@ Available Commands:
   /clear, /cls    - Clear the log display
   /lorem          - Add sample text for testing scrolling
   /paste          - Append clipboard contents to the log
+  /use MODEL     - Set AI model for responses
 
 File Commands:
   < filename      - Read and display file contents (e.g., "< README.md")
@@ -133,7 +151,8 @@ General Usage:
         super().__init__(*args, **kwargs)
 
         self.busy = False  # Flag to indicate if the app is busy
-        self.ai_model = AnthropicClient()  # Initialize the AI model client
+        self.ai_model = None  # Anthropic client, lazily initialized
+        self.ai_model_name = DEFAULT_MODEL  # Current model name
         self.sam = Sam()
         self.buffer: list[str] = []  # Main text buffer for log contents
         self.dot = (0, 0)  # Cursor position in log
@@ -296,7 +315,8 @@ General Usage:
 
         # Slash commands: /q to quit, /clear to clear the log, /w to save buffer to CAS
         if value.startswith("/"):
-            cmd = value[1:].strip().lower()
+            cmd_line = value[1:].strip()
+            cmd = cmd_line.lower()
             if cmd in ("q", "quit"):
                 # user requested quit
                 try:
@@ -333,6 +353,11 @@ General Usage:
                 for line in self.HELP_TEXT.strip().split("\n"):
                     self.log_view.append(line)
                 self.input.value = ""  # Clear input after command
+                return
+            if cmd.startswith("use "):
+                self.ai_model_name = cmd_line.split(maxsplit=1)[1]
+                self.log_view.append(f"[model] {self.ai_model_name}")
+                self.input.value = ""
                 return
             if cmd == "lorem":
                 for line in self.LOREM:
@@ -440,9 +465,10 @@ General Usage:
 
         elif self.input_mode == "ai":
             # AI mode: send the prompt to the AI model
-            # Print the response
             self.set_busy(True)  # Set busy state while waiting for AI response
-            response = await self.ai_model.oneshot(value)
+            if self.ai_model is None:
+                self.ai_model = AnthropicClient()
+            response = await self.ai_model.oneshot(value, model=self.ai_model_name)
             for ln in response.splitlines() or ["(no output)"]:
                 for wrapped_ln in textwrap.wrap(ln, width=72) or [""]:
                     self.log_view.append("  " + wrapped_ln)
