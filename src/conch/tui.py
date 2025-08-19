@@ -209,12 +209,6 @@ General Usage:
         self.move_dot(1)
 
     async def on_mount(self) -> None:
-        # Seed some example lines into the log
-        self.log_view.append("conch TUI — large log + single-line input")
-        self.log_view.append("")
-        self.log_view.append(
-            "Type commands below and press Enter. Press Ctrl+C to quit."
-        )
         # Hint for slash commands and quitting
         self.log_view.append("Type /help for available commands, or /q to quit.")
 
@@ -291,7 +285,7 @@ General Usage:
             self.input.value = ""
             return
 
-        # Slash commands: /q to quit, /clear to clear the log
+        # Slash commands: /q to quit, /clear to clear the log, /w to save buffer to CAS
         if value.startswith("/"):
             cmd = value[1:].strip().lower()
             if cmd in ("q", "quit"):
@@ -307,6 +301,18 @@ General Usage:
                             await res2
                     except Exception:
                         pass
+                return
+            if cmd == "w":
+                # Save buffer to CAS and update busy indicator
+                from .cas import CAS
+                # TODO: move this to config.py
+                cas_root = "e:/rsbohn/cas-01"
+                cas = CAS(cas_root)
+                # Get buffer content as a single string
+                buffer_content = "\n".join([getattr(line, "text", str(line)) for line in self.log_view.lines])
+                hash_value = cas.put(buffer_content)
+                self.busy_indicator.update(f"Saved: {hash_value}")
+                self.input.value = ""
                 return
             if cmd in ("clear", "cls"):
                 self.log_view.clear()
