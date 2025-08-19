@@ -30,21 +30,25 @@ class LogView(RichLog):
     """
 
     def __init__(self, *args, **kwargs):
-        self._lines_buf: list[object] = []
+        # Maintain a buffer of Text instances that have been written to the log.
+        # Using ``Text`` ensures the Rich renderer can always display the lines.
+        self._lines_buf: list[Text] = []
         super().__init__(*args, **kwargs)
         self.can_focus = False  # LogView doesn't need focus
 
     def append(self, text: str) -> None:
         """Add text to the log, automatically scrolling to bottom."""
         for ln in text.splitlines() or [""]:
-            if not getattr(self, "_size_known", False):
-                self.lines.append(ln)
-                try:
-                    self.write(ln)
-                except Exception:
-                    pass
-            else:
+            try:
+                # Attempt to write the line immediately. ``RichLog.write``
+                # will append a ``Text`` instance to ``self.lines`` when
+                # the widget knows its size.
                 self.write(ln)
+            except Exception:
+                # Prior to layout the widget may not yet be able to write.
+                # Fallback to buffering the line as ``Text`` so rendering
+                # succeeds once the widget is ready.
+                self._lines_buf.append(Text(ln))
 
     def clear(self) -> None:
         """Clear all content from the log."""
@@ -56,12 +60,13 @@ class LogView(RichLog):
         self.border_title = title
 
     @property
-    def lines(self) -> list[object]:  # type: ignore[override]
+    def lines(self) -> list[Text]:  # type: ignore[override]
         return self._lines_buf
 
     @lines.setter
-    def lines(self, value: list[object]) -> None:  # type: ignore[override]
-        self._lines_buf = list(value)
+    def lines(self, value: list[Text | str]) -> None:  # type: ignore[override]
+        # Ensure the buffer always contains ``Text`` objects.
+        self._lines_buf = [v if isinstance(v, Text) else Text(v) for v in value]
 
 
 class Submit(Message):
