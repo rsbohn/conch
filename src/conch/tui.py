@@ -301,6 +301,17 @@ General Usage:
                 command_gf(self)
                 return
 
+        # Interpolate the user input
+        # unless the input is quoted
+        if value[0] == "\"":
+            if value[-1] == "\"":
+                value = value[1:-1]
+            else:
+                value = value[1:]  # Remove leading quote
+        else:
+            # interpolate
+            value = self.interpolate(value)
+
         if self.input_mode == "ed":
             # Use Sam to process the command on the buffer
             buffer = [getattr(line, "text", line) for line in self.log_view.lines]
@@ -367,6 +378,11 @@ General Usage:
             except Exception:
                 pass
 
+    def interpolate(self, value: str) -> str:
+        a = self.dot[0]
+        b = self.dot[1]
+        payload = self.log_view.get_lines(a, b)
+        return value.replace("%%", "\n" + "\n".join(payload) + "\n")
 
 def main() -> None:
     """Main entry point to run the Conch TUI application."""

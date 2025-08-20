@@ -4,6 +4,7 @@ import sys
 
 import pytest
 from rich.text import Text
+from rich.segment import Segment
 
 sys.path.insert(
     0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "src"))
@@ -64,7 +65,7 @@ def test_logview_append_get_lines():
     lv = LogView()
     lv.set_title("My Title")
     payload = "line1\nline2\nline3".splitlines()
-    lv.lines = [Text(item) for item in payload]
+    lv.lines = [Segment(item) for item in payload]
     assert lv.get_lines(0, 2) == ["line1", "line2"]
     assert lv.get_lines(1, 3) == ["line2", "line3"]
     assert lv.get_lines(0, 3) == ["line1", "line2", "line3"]

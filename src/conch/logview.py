@@ -1,5 +1,5 @@
 from textual.widgets import RichLog
-from rich.text import Text
+from rich.segment import Segment
 
 class LogView(RichLog):
     """Scrollable log area using RichLog for better performance and scrolling.
@@ -9,7 +9,7 @@ class LogView(RichLog):
     """
 
     def __init__(self, *args, **kwargs):
-        self._lines_buf: list[Text] = []
+        self._lines_buf: list[Segment] = []
         super().__init__(*args, **kwargs)
         self.can_focus = False
 
@@ -18,7 +18,7 @@ class LogView(RichLog):
             try:
                 self.write(ln)
             except Exception:
-                self._lines_buf.append(Text(ln))
+                self._lines_buf.append(Segment(ln))
 
     def clear(self) -> None:
         super().clear()
@@ -35,12 +35,15 @@ class LogView(RichLog):
         if b < 0: b = len(self._lines_buf) + b
         if a > b: return self.get_lines(b, a)
         if a == b: return self.get_lines(a, a+1)
-        return [line.plain for line in self._lines_buf[a:b]]
+        selection = self._lines_buf[a:b]
+        # Segment.text is not available, use Segment's 'text' attribute
+        return [seg.text if hasattr(seg, "text") else str(seg) for seg in selection]
 
     @property
-    def lines(self) -> list[Text]:
+    def lines(self) -> list[Segment]:
         return self._lines_buf
 
     @lines.setter
-    def lines(self, value: list[Text | str]) -> None:
-        self._lines_buf = [v if isinstance(v, Text) else Text(v) for v in value]
+    def lines(self, value: list[Segment | str]) -> None:
+        self._lines_buf = [v if isinstance(v, Segment) else Segment(v) for v in value]
+        
