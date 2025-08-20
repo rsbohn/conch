@@ -9,6 +9,7 @@ import asyncio
 import sys
 import os
 import signal
+import shlex, subprocess
 from rich.text import Text
 from textual.app import App, ComposeResult
 from textual.containers import Vertical
@@ -43,24 +44,20 @@ class ConchTUI(App):
         {"name": "ed", "description": "Sam mode", "switch": "/", "color": "#A692C9"},
         {"name": "ai", "description": "AI mode", "switch": "[", "color": "#729789"},
     ]
-    # Help text for the /help command
+    # Help text for the :help command
     HELP_TEXT = """
 Available Commands:
-  /help           - Show this help message
-  /q, /quit       - Exit the application
-  /clear, /cls    - Clear the log display
-  /lorem          - Add sample text for testing scrolling
-  /paste          - Append clipboard contents to the log
-  /use MODEL     - Set AI model for responses
+  :help           - Show this help message
+  :q, :quit       - Exit the application
+  :clear, :cls    - Clear the log display
+  :lorem          - Add sample text for testing scrolling
+  :paste          - Append clipboard contents to the log
+  :use MODEL      - Set AI model for responses
 
 File Commands:
   < filename      - Read and display file contents (e.g., "< README.md")
   < directory     - List directory contents (e.g., "< src")
-  /gf             - Goto file at current dot
-
-Input Modalities
-  ; - shell command mode
-  / - sam (edit) mode
+  :gf             - Goto file at current dot
 
 General Usage:
   - Type commands in the input field at the bottom
@@ -69,7 +66,7 @@ General Usage:
   - Use scroll or arrow keys to navigate through log history
   - Use up/down arrow keys to move the dot and highlight the line
 """
-    # ...existing code...
+
     CSS = """
     ConchTUI {
         background: black;
@@ -96,6 +93,8 @@ General Usage:
         ("ctrl+c", "quit", "Quit"),
         ("up", "move_up", "Dot up"),
         ("down", "move_down", "Dot down"),
+        ("shift+up", "select_up", "Selection start up"),
+        ("shift+down", "select_down", "Selection end down"),
         ("f9", "switch_mode", "Switch input mode"),
     ]
 
@@ -186,6 +185,20 @@ General Usage:
     def action_move_down(self) -> None:
         self.move_dot(1)
 
+    def action_select_up(self) -> None:
+        """Move the start of the selection up by one line."""
+        start, end = self.dot
+        if start > 0:
+            self.dot = (start - 1, end)
+            self.render_buffer()
+
+    def action_select_down(self) -> None:
+        """Move the end of the selection down by one line."""
+        start, end = self.dot
+        if end < len(self.buffer) - 1:
+            self.dot = (start, end + 1)
+            self.render_buffer()
+
     def action_switch_mode(self) -> None:
         """Cycle through input modes using hot-key."""
         available_modes = [item["name"] for item in self.input_modes]
@@ -230,7 +243,7 @@ General Usage:
 
     async def on_mount(self) -> None:
         # Hint for slash commands and quitting
-        self.log_view.append("Type /help for available commands, or /q to quit.")
+        self.log_view.append("Type :help for available commands, or :q to quit.")
 
         # Focus input for immediate typing. set_focus may be a coroutine in
         # some Textual versions or a plain method in others; handle both.
@@ -243,18 +256,13 @@ General Usage:
         if "--test" in sys.argv:
             asyncio.create_task(self._test_delayed_exit())
 
-        # Default mode is shell
-        self.input_mode = "sh"
-        self.switch_input_mode("sh")
+        # Default mode is ai
+        self.input_mode = "ai"
+        self.switch_input_mode(self.input_mode)
 
     async def on_input_submitted(self, event: Input.Submitted) -> None:
         value = event.value.strip()
         if not value:
-            return
-            # Colon-prefixed global selection commands
-        if value.startswith(":"):
-            sel = value[1:].strip()
-            command_select(self, sel)
             return
 
         # File reading: < filename
@@ -269,8 +277,8 @@ General Usage:
             self.input.value = ""
             return
 
-        # Slash commands: delegate to commands.py
-        if value.startswith("/"):
+        # colon commands: delegate (most) to commands.py
+        if value.startswith(":"):
             cmd_line = value[1:].strip()
             cmd = cmd_line.lower()
             if cmd in ("q", "quit"):
@@ -326,21 +334,15 @@ General Usage:
         # Echo command into the log
         self.log_view.append(f"> {value}")
 
-        # Use input_mode to determine how to handle input
+        if value.startswith("!"):
+            self.do_shell_command(value[1:])
+            self.input.value = ""
+            return
+
         if self.input_mode == "sh":
-            # Treat as shell command
-            import shlex, subprocess
+            self.do_shell_command(value)
 
-            try:
-                args = shlex.split(value)
-                p = subprocess.run(args, capture_output=True, text=True, timeout=10)
-                out = p.stdout.strip() or p.stderr.strip() or f"(exit {p.returncode})"
-            except Exception as e:
-                out = f"[error] {e}"
-            for ln in out.splitlines() or ["(no output)"]:
-                self.log_view.append("  " + ln)
-
-        elif self.input_mode == "ai":
+        if self.input_mode == "ai":
             # AI mode: send the prompt to the AI model
             self.set_busy(True)  # Set busy state while waiting for AI response
             if self.ai_model is None:
@@ -378,6 +380,18 @@ General Usage:
             except Exception:
                 pass
 
+    # Shell command execution
+    # TODO: operate on selection
+    def do_shell_command(self, command:str) -> None:
+        try:
+            args = shlex.split(command)
+            p = subprocess.run(args, capture_output=True, text=True, timeout=10)
+            out = p.stdout.strip() or p.stderr.strip() or f"(exit {p.returncode})"
+        except Exception as e:
+            out = f"[error] {e}"
+        for ln in out.splitlines() or ["(no output)"]:
+            self.log_view.append("  " + ln)
+            
     def interpolate(self, value: str) -> str:
         a = self.dot[0]
         b = self.dot[1]
