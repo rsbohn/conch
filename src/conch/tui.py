@@ -94,7 +94,9 @@ General Usage:
         ("ctrl+c", "quit", "Quit"),
         ("up", "move_up", "Dot up"),
         ("down", "move_down", "Dot down"),
+        ("f9", "switch_mode", "Switch input mode"),
     ]
+
 
     placeholder = reactive("Ready.")
 
@@ -179,6 +181,13 @@ General Usage:
     def action_move_down(self) -> None:
         self.move_dot(1)
 
+    def action_switch_mode(self) -> None:
+        """Cycle through input modes using hot-key."""
+        available_modes = [item["name"] for item in self.input_modes]
+        current_index = available_modes.index(self.input_mode)
+        next_index = (current_index + 1) % len(available_modes)
+        self.switch_input_mode(available_modes[next_index])
+
     def _read_path(self, filename: str) -> bool:
         """Load a file or directory into the log view.
 
@@ -236,17 +245,6 @@ General Usage:
     async def on_input_submitted(self, event: Input.Submitted) -> None:
         value = event.value.strip()
         if not value:
-            return
-
-        # Mode switching: ';' for shell, ':' for python
-        if value == ";":
-            self.switch_input_mode("sh")
-            return
-        if value == "/":
-            self.switch_input_mode("ed")
-            return
-        if value == "[":
-            self.switch_input_mode("ai")
             return
 
         # File reading: < filename
