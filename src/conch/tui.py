@@ -20,53 +20,13 @@ import pyperclip
 import textwrap
 from .anthropic import AnthropicClient, DEFAULT_MODEL
 from .sam import Sam, SamParseError
+from .logview import LogView
+from .commands import (
+    command_quit, command_w, command_clear, command_help,
+    command_use, command_lorem, command_paste, command_gf
+)
 
 
-class LogView(RichLog):
-    """Scrollable log area using RichLog for better performance and scrolling.
-
-    RichLog is designed specifically for logging output with automatic
-    scrolling, line wrapping, and proper performance with large amounts of text.
-    """
-
-    def __init__(self, *args, **kwargs):
-        # Maintain a buffer of Text instances that have been written to the log.
-        # Using ``Text`` ensures the Rich renderer can always display the lines.
-        self._lines_buf: list[Text] = []
-        super().__init__(*args, **kwargs)
-        self.can_focus = False  # LogView doesn't need focus
-
-    def append(self, text: str) -> None:
-        """Add text to the log, automatically scrolling to bottom."""
-        for ln in text.splitlines() or [""]:
-            try:
-                # Attempt to write the line immediately. ``RichLog.write``
-                # will append a ``Text`` instance to ``self.lines`` when
-                # the widget knows its size.
-                self.write(ln)
-            except Exception:
-                # Prior to layout the widget may not yet be able to write.
-                # Fallback to buffering the line as ``Text`` so rendering
-                # succeeds once the widget is ready.
-                self._lines_buf.append(Text(ln))
-
-    def clear(self) -> None:
-        """Clear all content from the log."""
-        super().clear()
-        self.lines = []
-
-    def set_title(self, title: str) -> None:
-        """Set the border title for the log view."""
-        self.border_title = title
-
-    @property
-    def lines(self) -> list[Text]:  # type: ignore[override]
-        return self._lines_buf
-
-    @lines.setter
-    def lines(self, value: list[Text | str]) -> None:  # type: ignore[override]
-        # Ensure the buffer always contains ``Text`` objects.
-        self._lines_buf = [v if isinstance(v, Text) else Text(v) for v in value]
 
 
 class Submit(Message):
@@ -77,8 +37,7 @@ class Submit(Message):
 
 class ConchTUI(App):
     input_modes = [
-        {"name": "sh", "description": "Shell mode", "switch": ";", "color": "#44CC88"},
-        {"name": "py", "description": "Python mode", "switch": ":", "color": "#CC8844"},
+        {"name": "sh", "description": "Shell mode", "switch": ";", "color": "#DDA777"},
         {"name": "ed", "description": "Sam mode", "switch": "/", "color": "#A692C9"},
         {"name": "ai", "description": "AI mode", "switch": "[", "color": "#729789"}
     ]
@@ -99,7 +58,6 @@ File Commands:
 
 Input Modalities
   ; - shell command mode
-  : - python mode
   / - sam (edit) mode
 
 General Usage:
@@ -109,19 +67,7 @@ General Usage:
   - Use scroll or arrow keys to navigate through log history
   - Use up/down arrow keys to move the dot and highlight the line
 """
-    LOREM = [
-        "Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor",
-        "incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis",
-        "nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat.",
-        "Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore",
-        "eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident,",
-        "sunt in culpa qui officia deserunt mollit anim id est laborum. Sed ut",
-        "perspiciatis unde omnis iste natus error sit voluptatem accusantium doloremque",
-        "laudantium, totam rem aperiam, eaque ipsa quae ab illo inventore veritatis et",
-        "quasi architecto beatae vitae dicta sunt explicabo. Nemo enim ipsam voluptatem",
-        "quia voluptas sit aspernatur aut odit aut fugit, sed quia consequuntur magni",
-        "dolores eos qui ratione voluptatem sequi nesciunt.",
-    ]
+    # ...existing code...
     CSS = """
     ConchTUI {
         background: black;
@@ -296,9 +242,6 @@ General Usage:
         if value == ";":
             self.switch_input_mode("sh")
             return
-        if value == ":":
-            self.switch_input_mode("py")
-            return
         if value == "/":
             self.switch_input_mode("ed")
             return
@@ -318,89 +261,33 @@ General Usage:
             self.input.value = ""
             return
 
-        # Slash commands: /q to quit, /clear to clear the log, /w to save buffer to CAS
+        # Slash commands: delegate to commands.py
         if value.startswith("/"):
             cmd_line = value[1:].strip()
             cmd = cmd_line.lower()
             if cmd in ("q", "quit"):
-                # user requested quit
-                try:
-                    res = self.exit()
-                    if asyncio.iscoroutine(res):
-                        await res
-                except Exception:
-                    try:
-                        res2 = self.action_quit()
-                        if asyncio.iscoroutine(res2):
-                            await res2
-                    except Exception:
-                        pass
+                await command_quit(self)
                 return
             if cmd == "w":
-                # Save buffer to CAS and update busy indicator
-                from .cas import CAS
-                # TODO: move this to config.py
-                cas_root = "e:/rsbohn/cas-01"
-                cas = CAS(cas_root)
-                # Get buffer content as a single string
-                buffer_content = "\n".join([getattr(line, "text", str(line)) for line in self.log_view.lines])
-                hash_value = cas.put(buffer_content)
-                self.busy_indicator.update(f"Saved: {hash_value}")
-                self.input.value = ""
+                command_w(self)
                 return
             if cmd in ("clear", "cls"):
-                self.log_view.clear()
-                self.log_view.set_title("Conch TUI")  # Reset title to default
-                self.input.value = ""  # Clear input after command
+                command_clear(self)
                 return
             if cmd == "help":
-                # Show help text
-                for line in self.HELP_TEXT.strip().split("\n"):
-                    self.log_view.append(line)
-                self.input.value = ""  # Clear input after command
+                command_help(self)
                 return
             if cmd.startswith("use "):
-                self.ai_model_name = cmd_line.split(maxsplit=1)[1]
-                self.log_view.append(f"[model] {self.ai_model_name}")
-                self.input.value = ""
+                command_use(self, cmd_line)
                 return
             if cmd == "lorem":
-                for line in self.LOREM:
-                    self.log_view.append(line)
-                self.input.value = ""
+                command_lorem(self)
                 return
             if cmd == "paste":
-                try:
-                    clipboard_text = pyperclip.paste()
-                    if clipboard_text:
-                        self.log_view.append(f"[clipboard]\n{clipboard_text}")
-                    else:
-                        self.log_view.append("[clipboard] No text in clipboard")
-                except Exception as e:
-                    self.log_view.append(f"[error] Clipboard access failed: {e}")
-                self.input.value = ""
+                command_paste(self)
                 return
             if cmd == "gf":
-                buffer = [getattr(line, "text", str(line)) for line in self.log_view.lines]
-                if self.dot[0] < len(buffer):
-                    filename = buffer[self.dot[0]].strip()
-                    if os.path.exists(filename):
-                        self._read_path(filename)
-                    elif self.dot[0] != 0:
-                        base = buffer[0].strip()
-                        if base.startswith("#"):
-                            base = base[1:].strip()
-                        if base and os.path.exists(base):
-                            candidate = os.path.join(base, filename)
-                            if os.path.exists(candidate):
-                                self._read_path(candidate)
-                            else:
-                                self.log_view.append(f"Error: File '{filename}' not found")
-                        else:
-                            self.log_view.append(f"Error: File '{filename}' not found")
-                    else:
-                        self.log_view.append(f"Error: File '{filename}' not found")
-                self.input.value = ""
+                command_gf(self)
                 return
 
         if self.input_mode == "ed":
@@ -452,21 +339,6 @@ General Usage:
                     out = f"[error] {e}"
                 for ln in out.splitlines() or ["(no output)"]:
                     self.log_view.append("  " + ln)
-
-        elif self.input_mode == "py":
-            # Python mode: evaluate as Python code
-            import io
-            import contextlib
-
-            buf = io.StringIO()
-            try:
-                with contextlib.redirect_stdout(buf):
-                    exec(value, globals())
-                out = buf.getvalue().strip()
-            except Exception as e:
-                out = f"[error] {e}"
-            for ln in out.splitlines() or ["(no output)"]:
-                self.log_view.append("  " + ln)
 
         elif self.input_mode == "ai":
             # AI mode: send the prompt to the AI model
