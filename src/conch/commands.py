@@ -54,7 +54,8 @@ def command_select(app, sel):
     return False
 
 def command_w(app):
-    cas_root = "e:/rsbohn/cas-01"
+    cas_root = os.environ.get("CONCH_CAS_ROOT", os.path.expanduser("~/.conch/cas"))
+    os.makedirs(cas_root, exist_ok=True)
     cas = CAS(cas_root)
     buffer_content = "\n".join([getattr(line, "text", str(line)) for line in app.log_view.lines])
     hash_value = cas.put(buffer_content)
