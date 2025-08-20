@@ -264,7 +264,10 @@ General Usage:
             cmd_line = value[1:].strip()
             cmd = cmd_line.lower()
             if cmd in ("q", "quit"):
-                await command_quit(self)
+                # Handle quit directly: exit the app
+                res = self.exit()
+                if asyncio.iscoroutine(res):
+                    await res
                 return
             if cmd == "w":
                 command_w(self)

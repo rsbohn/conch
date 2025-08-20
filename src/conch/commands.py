@@ -16,19 +16,6 @@ import os
 import pyperclip
 from .cas import CAS
 
-def command_quit(app):
-    try:
-        res = app.exit()
-        if hasattr(res, '__await__'):
-            return res
-    except Exception:
-        try:
-            res2 = app.action_quit()
-            if hasattr(res2, '__await__'):
-                return res2
-        except Exception:
-            pass
-
 def command_w(app):
     cas_root = "e:/rsbohn/cas-01"
     cas = CAS(cas_root)
