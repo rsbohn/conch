@@ -20,13 +20,14 @@ from .anthropic import AnthropicClient, DEFAULT_MODEL
 from .sam import Sam, SamParseError
 from .logview import LogView
 from .commands import (
-    command_w,
     command_clear,
+    command_gf,
     command_help,
-    command_use,
     command_lorem,
     command_paste,
-    command_gf,
+    command_select,
+    command_use,
+    command_w,
 )
 
 
@@ -160,8 +161,11 @@ General Usage:
             "#729789",
         )
         self.log_view.clear()
+        # Highlight selection range if dot[1] > dot[0]
+        start = min(self.dot[0], self.dot[1])
+        end = max(self.dot[0], self.dot[1])
         for i, line in enumerate(self.buffer):
-            if i == self.dot[0]:
+            if start <= i <= end:
                 self.log_view.write(Text(line, style=f"black on {mode_color}"))
             else:
                 self.log_view.write(line)
@@ -173,7 +177,7 @@ General Usage:
         if not self.buffer:
             return
         new_line = max(0, min(self.dot[0] + delta, len(self.buffer) - 1))
-        self.dot = (new_line, min(self.dot[1], len(self.buffer[new_line])))
+        self.dot = (new_line, new_line)
         self.render_buffer()
 
     def action_move_up(self) -> None:
@@ -246,6 +250,11 @@ General Usage:
     async def on_input_submitted(self, event: Input.Submitted) -> None:
         value = event.value.strip()
         if not value:
+            return
+            # Colon-prefixed global selection commands
+        if value.startswith(":"):
+            sel = value[1:].strip()
+            command_select(self, sel)
             return
 
         # File reading: < filename
