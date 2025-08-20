@@ -10,7 +10,7 @@ from conch.tui import ConchTUI
 
 def test_help_contains_commands():
     help_text = ConchTUI.HELP_TEXT
-    assert "/help" in help_text
+    assert ":help" in help_text
     assert "< filename" in help_text
     assert "< directory" in help_text
     # Boundary tests

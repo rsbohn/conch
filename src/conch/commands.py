@@ -54,7 +54,10 @@ def command_select(app, sel):
     return False
 
 def command_w(app):
-    cas_root = os.environ.get("CONCH_CAS_ROOT", os.path.expanduser("~/.conch/cas"))
+    cas_root = os.environ.get("CONCH_CAS_ROOT")
+    if cas_root is None:
+        home = os.environ.get("HOME") or os.path.expanduser("~")
+        cas_root = os.path.join(home, ".conch", "cas")
     os.makedirs(cas_root, exist_ok=True)
     cas = CAS(cas_root)
     buffer_content = "\n".join([getattr(line, "text", str(line)) for line in app.log_view.lines])

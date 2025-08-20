@@ -23,7 +23,7 @@ def test_use_switches_model_and_passes_to_oneshot():
     app.input_mode = "sh"
     app.busy_indicator = type("Dummy", (), {"update": lambda self, value: None})()
 
-    asyncio.run(app.on_input_submitted(DummyEvent("/use test-model")))
+    asyncio.run(app.on_input_submitted(DummyEvent(":use test-model")))
     assert app.ai_model_name == "test-model"
 
     captured = {}
