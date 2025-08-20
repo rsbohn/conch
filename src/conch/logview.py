@@ -27,6 +27,15 @@ class LogView(RichLog):
     def set_title(self, title: str) -> None:
         self.border_title = title
 
+    def get_lines(self, a:int=0, b:int=-1) -> list[str]:
+        """
+        Get lines from the buffer between indices a and b.
+        """
+        if a < 0: a = len(self._lines_buf) + a
+        if b < 0: b = len(self._lines_buf) + b
+        if a > b: return self.get_lines(b, a)
+        return [line.plain for line in self._lines_buf[a:b]]
+
     @property
     def lines(self) -> list[Text]:
         return self._lines_buf
