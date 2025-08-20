@@ -10,23 +10,24 @@ import sys
 import os
 import signal
 from rich.text import Text
-from textual import events
 from textual.app import App, ComposeResult
 from textual.containers import Vertical
 from textual.message import Message
 from textual.reactive import reactive
-from textual.widgets import Input, RichLog, LoadingIndicator, Static, Footer
-import pyperclip
+from textual.widgets import Input, Static, Footer
 import textwrap
 from .anthropic import AnthropicClient, DEFAULT_MODEL
 from .sam import Sam, SamParseError
 from .logview import LogView
 from .commands import (
-    command_quit, command_w, command_clear, command_help,
-    command_use, command_lorem, command_paste, command_gf
+    command_w,
+    command_clear,
+    command_help,
+    command_use,
+    command_lorem,
+    command_paste,
+    command_gf,
 )
-
-
 
 
 class Submit(Message):
@@ -39,7 +40,7 @@ class ConchTUI(App):
     input_modes = [
         {"name": "sh", "description": "Shell mode", "switch": ";", "color": "#DDA777"},
         {"name": "ed", "description": "Sam mode", "switch": "/", "color": "#A692C9"},
-        {"name": "ai", "description": "AI mode", "switch": "[", "color": "#729789"}
+        {"name": "ai", "description": "AI mode", "switch": "[", "color": "#729789"},
     ]
     # Help text for the /help command
     HELP_TEXT = """
@@ -97,7 +98,6 @@ General Usage:
         ("f9", "switch_mode", "Switch input mode"),
     ]
 
-
     placeholder = reactive("Ready.")
 
     def __init__(self, *args, **kwargs):
@@ -110,7 +110,7 @@ General Usage:
         self.buffer: list[str] = []  # Main text buffer for log contents
         self.dot = (0, 0)  # Cursor position in log
         # TODO: Add history stack for undo functionality
-    
+
     def switch_input_mode(self, mode: str) -> None:
         """Switch the input mode."""
         available_modes = [item["name"] for item in self.input_modes]
@@ -122,7 +122,6 @@ General Usage:
         self.input.border_title = f"{mode}:"
         self.input.styles.border = ("heavy", selected_mode["color"])
         self.input.value = ""
-
 
     def compose(self) -> ComposeResult:
         with Vertical():
@@ -144,14 +143,16 @@ General Usage:
         a = self.dot[0] + 1  # Convert to 1-based index for display
         b = self.dot[1] + 1  # Convert to 1-based index for display
         if title is None:
-            title = str((a,b))
+            title = str((a, b))
         self.log_view.border_title = f"Conch {title}"
 
     def render_buffer(self) -> None:
         """Render current buffer highlighting the dot."""
         if not self.buffer:
             # Capture current log view lines if buffer is empty
-            self.buffer = [getattr(line, "text", str(line)) for line in self.log_view.lines]
+            self.buffer = [
+                getattr(line, "text", str(line)) for line in self.log_view.lines
+            ]
 
         mode_name = getattr(self, "input_mode", "sh")
         mode_color = next(
@@ -301,45 +302,23 @@ General Usage:
             except SamParseError as e:
                 self.log_view.append(f"SamParseError: {e}")
             return
-        
+
         # Echo command into the log
         self.log_view.append(f"> {value}")
 
         # Use input_mode to determine how to handle input
         if self.input_mode == "sh":
-            # Handle shell commands: sh:
-            if value.startswith("sh:"):
-                import shlex, subprocess
+            # Treat as shell command
+            import shlex, subprocess
 
-                cmd = (
-                    value.split(":", 1)[1].strip()
-                    if ":" in value
-                    else value[len("sh:") :].strip()
-                )
-                try:
-                    args = shlex.split(cmd)
-                    p = subprocess.run(args, capture_output=True, text=True, timeout=10)
-                    out = (
-                        p.stdout.strip() or p.stderr.strip() or f"(exit {p.returncode})"
-                    )
-                except Exception as e:
-                    out = f"[error] {e}"
-                for ln in out.splitlines() or ["(no output)"]:
-                    self.log_view.append("  " + ln)
-            else:
-                # Treat as shell command
-                import shlex, subprocess
-
-                try:
-                    args = shlex.split(value)
-                    p = subprocess.run(args, capture_output=True, text=True, timeout=10)
-                    out = (
-                        p.stdout.strip() or p.stderr.strip() or f"(exit {p.returncode})"
-                    )
-                except Exception as e:
-                    out = f"[error] {e}"
-                for ln in out.splitlines() or ["(no output)"]:
-                    self.log_view.append("  " + ln)
+            try:
+                args = shlex.split(value)
+                p = subprocess.run(args, capture_output=True, text=True, timeout=10)
+                out = p.stdout.strip() or p.stderr.strip() or f"(exit {p.returncode})"
+            except Exception as e:
+                out = f"[error] {e}"
+            for ln in out.splitlines() or ["(no output)"]:
+                self.log_view.append("  " + ln)
 
         elif self.input_mode == "ai":
             # AI mode: send the prompt to the AI model
