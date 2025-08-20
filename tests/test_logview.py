@@ -1,5 +1,9 @@
+import asyncio
 import os
 import sys
+
+import pytest
+from rich.text import Text
 
 sys.path.insert(
     0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "src"))
@@ -24,9 +28,6 @@ def test_get_lines_basic():
     # Out-of-bounds indices (should not raise, just slice)
     assert lv.get_lines(0, 10) == ["line1", "line2", "line3", "line4", "line5"]
     assert lv.get_lines(-10, 2) == ["line1", "line2"]
-
-    # Empty range
-    assert lv.get_lines(2, 2) == []
 
 def test_get_lines_empty():
     lv = LogView()
@@ -58,3 +59,13 @@ def test_logview_append_and_title():
     # ensure title remains settable after clear
     lv.set_title("Other")
     assert lv.border_title == "Other"
+
+def test_logview_append_get_lines():
+    lv = LogView()
+    lv.set_title("My Title")
+    payload = "line1\nline2\nline3".splitlines()
+    lv.lines = [Text(item) for item in payload]
+    assert lv.get_lines(0, 2) == ["line1", "line2"]
+    assert lv.get_lines(1, 3) == ["line2", "line3"]
+    assert lv.get_lines(0, 3) == ["line1", "line2", "line3"]
+    assert lv.get_lines(1, 1) == ["line2"]

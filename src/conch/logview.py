@@ -34,6 +34,7 @@ class LogView(RichLog):
         if a < 0: a = len(self._lines_buf) + a
         if b < 0: b = len(self._lines_buf) + b
         if a > b: return self.get_lines(b, a)
+        if a == b: return self.get_lines(a, a+1)
         return [line.plain for line in self._lines_buf[a:b]]
 
     @property
