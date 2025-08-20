@@ -49,6 +49,7 @@ class Sam:
                 (addr - 1, addr - 1 + len(lines)),
             )
         if cmd == "d":
+            # TODO: delete multiple lines dot[0]:dot[1]
             return (buffer[: addr - 1] + buffer[addr:], (addr - 1, addr - 1))
         if cmd == "i":
             lines = text.splitlines()
