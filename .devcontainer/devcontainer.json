@@ -1,22 +1,26 @@
 {
     // See https://aka.ms/devcontainer.json for format details
     "name": "Conch Dev Container",
-    "image": "mcr.microsoft.com/devcontainers/python:3.12",
-    "features": {
-        "ghcr.io/devcontainers/features/python:1": {
-            "version": "3.12"
+    "image": "mcr.microsoft.com/devcontainers/python:3.12",    
+    "customizations": {
+        "vscode": {
+            "settings": {
+                "python.defaultInterpreterPath": 
+                    "/workspaces/${localWorkspaceFolderBasename}/.venv/bin/python",
+                "terminal.integrated.shell.linux":
+                    "/bin/bash"
+            },
+            "extensions": [
+                "ms-python.python",
+                "ms-python.vscode-pylance",
+                "ms-toolsai.jupyter"
+            ]
         }
     },
-    "settings": {
-        "python.defaultInterpreterPath": "/usr/local/bin/python",
-        "terminal.integrated.shell.linux": "/bin/bash"
-    },
-    "postCreateCommand": "python -m venv .venv && source .venv/bin/activate && pip install --upgrade pip",
-    "extensions": [
-        "ms-python.python",
-        "ms-python.vscode-pylance",
-        "ms-toolsai.jupyter"
-    ],
+    "postCreateCommand": 
+        "python -m venv .venv && .venv/bin/pip install uv",
+
+
     "forwardPorts": [],
     "remoteUser": "vscode"
 }
