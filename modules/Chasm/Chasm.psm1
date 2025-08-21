@@ -3,11 +3,11 @@
 function Get-CASRoot {
     $root = $env:CONCH_CAS_ROOT
     if (-not $root) {
-        $home = $env:HOME
-        if (-not $home) {
-            $home = [Environment]::GetFolderPath('UserProfile')
+        $user_home = $env:HOME
+        if (-not $user_home) {
+            $user_home = [Environment]::GetFolderPath('UserProfile')
         }
-        $root = Join-Path $home '.conch' 'cas'
+        $root = Join-Path $user_home '.conch' 'cas'
     }
     if (-not (Test-Path $root)) {
         New-Item -ItemType Directory -Path $root | Out-Null
@@ -34,7 +34,7 @@ function Get-CASPath {
     return Join-Path $dir $Hash
 }
 
-function Store-ContentInCAS {
+function Set-ContentInCAS {
     [CmdletBinding()]
     param(
         [Parameter(Mandatory=$true)]
@@ -79,7 +79,7 @@ function Set-CASContent {
         [string]$Content
     )
     process {
-        $hash = Store-ContentInCAS -Content $Content
+        $hash = Set-ContentInCAS -Content $Content
         Write-Output $hash
     }
 }
@@ -96,4 +96,24 @@ function Get-CASContent {
     }
 }
 
-Export-ModuleMember -Function Get-CASContent, Set-CASContent
+function Get-FilesByPrefix {
+    [CmdletBinding()]
+    param(
+        [Parameter(Mandatory=$true)]
+        [string]$Prefix
+    )
+    process {
+        $dir = Join-Path $script:StoreDir $Prefix.Substring(0,2)
+        if (-not (Test-Path $dir)) {
+            return @()
+        }
+        $hash = Get-ChildItem -Path $dir -Filter "$Prefix*" | Select-Object -ExpandProperty Name
+        $firstLine = (Get-ContentFromCAS -Hash $hash).split("`n")[0]
+        return [PSCustomObject]@{
+            Hash = $hash
+            FirstLine = $firstLine
+        }
+    }
+}
+
+Export-ModuleMember -Function Get-CASContent, Get-FilesByPrefix, Set-CASContent

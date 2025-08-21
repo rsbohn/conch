@@ -91,6 +91,7 @@ General Usage:
 
     BINDINGS = [
         ("ctrl+c", "quit", "Quit"),
+        ("f8", "delete_selection", "Delete selection"),
         ("up", "move_up", "Dot up"),
         ("down", "move_down", "Dot down"),
         ("shift+up", "select_up", "Selection start up"),
@@ -191,6 +192,14 @@ General Usage:
         except Exception:
             # In case the underlying Textual version differs, fail silently.
             pass
+
+    def action_delete_selection(self) -> None:
+        """Delete the current selection."""
+        start, end = self.dot
+        if start != end:
+            self.buffer = self.buffer[:start] + self.buffer[end:]
+            self.dot = (start, start)
+            self.render_buffer()
 
     def move_dot(self, delta: int) -> None:
         """Move the dot up or down by delta lines and refresh display."""
