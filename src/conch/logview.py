@@ -12,6 +12,7 @@ class LogView(RichLog):
         self._lines_buf: list[Segment] = []
         super().__init__(*args, **kwargs)
         self.can_focus = False
+        self.auto_scroll = False
 
     def append(self, text: str) -> None:
         for ln in text.splitlines() or [""]:

@@ -169,6 +169,28 @@ General Usage:
             else:
                 self.log_view.write(line)
         self.set_log_title()
+        self._center_on_selection()
+
+    def _center_on_selection(self) -> None:
+        """Scroll the log so the current selection is centered when possible."""
+        # Determine the line we want centered (top of the selection).
+        start_line = min(self.dot[0], self.dot[1])
+        try:
+            height = self.log_view.size.height
+        except Exception:
+            # If size isn't available (e.g., during tests before mount) skip.
+            return
+        if not height:
+            return
+        # Calculate the top line so the selection appears roughly in the middle
+        # of the visible region.
+        top_line = max(0, start_line - height // 2)
+        try:
+            # ``scroll_to`` is available on Textual scrollable widgets.
+            self.log_view.scroll_to(y=top_line)
+        except Exception:
+            # In case the underlying Textual version differs, fail silently.
+            pass
 
     def move_dot(self, delta: int) -> None:
         """Move the dot up or down by delta lines and refresh display."""
