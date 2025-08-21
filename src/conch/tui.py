@@ -95,6 +95,7 @@ General Usage:
         ("down", "move_down", "Dot down"),
         ("shift+up", "select_up", "Selection start up"),
         ("shift+down", "select_down", "Selection end down"),
+        ("delete", "delete_selection", "Delete selection"),
         ("f9", "switch_mode", "Switch input mode"),
     ]
 
@@ -194,7 +195,6 @@ General Usage:
 
     def move_dot(self, delta: int) -> None:
         """Move the dot up or down by delta lines and refresh display."""
-        self.buffer = [getattr(line, "text", str(line)) for line in self.log_view.lines]
         if not self.buffer:
             return
         new_line = max(0, min(self.dot[0] + delta, len(self.buffer) - 1))
@@ -220,6 +220,26 @@ General Usage:
         if end < len(self.buffer) - 1:
             self.dot = (start, end + 1)
             self.render_buffer()
+
+    def action_delete_selection(self) -> None:
+        """Delete the currently selected lines from the log."""
+        # Synchronize buffer with current log lines
+        self.buffer = [getattr(line, "text", str(line)) for line in self.log_view.lines]
+        if not self.buffer:
+            return
+        start, end = sorted(self.dot)
+        if start >= len(self.buffer):
+            return
+        del self.buffer[start : end + 1]
+        if self.buffer:
+            new_pos = min(start, len(self.buffer) - 1)
+            self.dot = (new_pos, new_pos)
+            self.render_buffer()
+        else:
+            # Buffer is empty: clear display and reset dot
+            self.dot = (0, 0)
+            self.log_view.clear()
+            self.set_log_title()
 
     def action_switch_mode(self) -> None:
         """Cycle through input modes using hot-key."""
@@ -299,8 +319,8 @@ General Usage:
             self.input.value = ""
             return
 
-        # colon commands: delegate (most) to commands.py
-        if value.startswith(":"):
+        # colon-like commands: ':' or '/' prefix
+        if value.startswith(":") or value.startswith("/"):
             cmd_line = value[1:].strip()
             cmd = cmd_line.lower()
             if cmd in ("q", "quit"):

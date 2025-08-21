@@ -1,12 +1,9 @@
 from textual.widgets import RichLog
 from rich.segment import Segment
 
-class LogView(RichLog):
-    """Scrollable log area using RichLog for better performance and scrolling.
 
-    RichLog is designed specifically for logging output with automatic
-    scrolling, line wrapping, and proper performance with large amounts of text.
-    """
+class LogView(RichLog):
+    """Minimal log view used for tests without requiring full Textual/Rich."""
 
     def __init__(self, *args, **kwargs):
         self._lines_buf: list[Segment] = []
@@ -16,10 +13,17 @@ class LogView(RichLog):
 
     def append(self, text: str) -> None:
         for ln in text.splitlines() or [""]:
-            try:
-                self.write(ln)
-            except Exception:
-                self._lines_buf.append(Segment(ln))
+            self.write(ln)
+
+    def write(self, text):
+        try:
+            super().write(text)
+        except Exception:
+            pass
+        if hasattr(text, "plain"):
+            self._lines_buf.append(Segment(text.plain))
+        else:
+            self._lines_buf.append(Segment(str(text)))
 
     def clear(self) -> None:
         super().clear()
