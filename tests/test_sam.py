@@ -33,7 +33,7 @@ def test_parse_command_dot_cases():
 
 def test_sam_a():
     dot = (3, 4)
-    result, dot = sam.exec("2aHello", buffer, dot)
+    result, dot = sam.exec("2a/Hello/", buffer, dot)
     assert result == buffer[:2] + ["Hello"] + buffer[2:]
     assert dot == (2, 3)
 
@@ -42,7 +42,7 @@ def test_sam_c():
     expected = buffer.copy()
     expected[n - 1] = "Hello"
     dot = (3, 4)
-    result, dot = sam.exec(f"{n}cHello", buffer, dot)
+    result, dot = sam.exec(f"{n}c/Hello/", buffer, dot)
     assert result[n - 1] == "Hello"
     assert result == expected
     assert dot == (n - 1, n)

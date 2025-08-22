@@ -8,9 +8,65 @@ import re
 class SamParseError(Exception):
     pass
 
+ac_pattern = r'^(\d*\.?,?\d*)([aci])(.)(.*)\3$'
+other_pattern = r'^(\d+\.?,?\d*)([abcdefimnqrstx]|\.)(.*)?$'
 class Sam:
     def __init__(self):
         pass
+
+
+    def is_sam_command(self, line: str) -> bool:
+        """
+        Returns True if the input line matches a Sam command pattern.
+        Lines starting with one or more '\' are not commands.
+        """
+        if line.startswith("\\"):
+            return False
+        if line == '$':
+            return True
+        if line == '.':
+            return True
+        if re.match(ac_pattern, line):
+            return True
+        if re.match(other_pattern, line):
+            return True
+        return False
+    
+    def parse_command(self, s: str, dot: tuple[int,int]) -> tuple[int, str, str]:
+        """
+        Parse a Sam command string into its components.
+        Returns a tuple of (address, command, text).
+        """
+        # Special case for '^.'
+        if s.startswith("."):
+            addr = dot[0] + 1  # Use current line number
+            cmd = s[1] if len(s) > 1 else '.'
+            text = ''
+            if len(s) > 2:
+                text = s[2:]
+            return addr, cmd, text
+        if s == '$.':
+            addr = -1  # Use current line number
+            cmd = '.'
+            text = ''
+            return addr, cmd, text
+
+        # Match against the command patterns
+        match = re.match(ac_pattern, s)
+        if match:
+            addr = int(match.group(1)) if match.group(1) else -1
+            cmd = match.group(2)
+            text = match.group(4) if match.group(4) else ""
+            return addr, cmd, text
+
+        match = re.match(other_pattern, s)
+        if match:
+            addr = int(match.group(1)) if match.group(1) else -1
+            cmd = match.group(2)
+            text = match.group(3) if match.group(3) else ""
+            return addr, cmd, text
+
+        return -1, "", ""
 
     def exec(
         self, command: str, buffer: list[str], dot: tuple[int, int]
@@ -95,27 +151,4 @@ class Sam:
         # If command not recognized, return buffer unchanged
         return (buffer, (0, 0))
 
-    def parse_command(self, s: str, dot: tuple[int,int] = (-1,-1)) -> tuple[int, str, str]:
-        """
-        Parse a Sam command string into its components.
-        Returns a tuple of (address, command, text).
-        """
-        # Special case for '^.'
-        if s.startswith("."):
-            addr = dot[0] + 1  # Use current line number
-            cmd = s[1] if len(s) > 1 else '.'
-            text = ''
-            if len(s) > 2:
-                text = s[2:]
-            return addr, cmd, text
 
-        m = re.match(r"^(\$|\d+)([a-zA-Z\.])(.*)?$", s.strip())
-        if m:
-            if m.group(1) == "$":
-                addr = -1
-            else:
-                addr = int(m.group(1))
-            cmd = m.group(2)
-            text = m.group(3) if m.group(3) else ""
-            return addr, cmd, text
-        return -1, "", ""
