@@ -8,7 +8,7 @@ import re
 class SamParseError(Exception):
     pass
 
-ac_pattern = r'^(\d*\.?,?\d*)([aci])(.)(.*)\3$'
+ac_pattern = r'^(\d*\.?,?\d*)([acis])(.)(.*)\3$'
 other_pattern = r'^(\d+\.?,?\d*)([abcdefimnqrstx]|\.)(.*)?$'
 class Sam:
     def __init__(self):
@@ -54,9 +54,11 @@ class Sam:
         # Match against the command patterns
         match = re.match(ac_pattern, s)
         if match:
-            addr = int(match.group(1)) if match.group(1) else -1
+            addr = int(match.group(1)) if match.group(1) else dot[0] + 1
             cmd = match.group(2)
             text = match.group(4) if match.group(4) else ""
+            if cmd == 's':
+                text = match.group(3)+match.group(4)
             return addr, cmd, text
 
         match = re.match(other_pattern, s)
@@ -132,7 +134,8 @@ class Sam:
             if not text:
                 return (buffer, dot)
             try:
-                pattern, replacement = text.split("/")[1:3]
+                delimiter = text[0]
+                pattern, replacement = text.split(delimiter)[1:3]
                 regex = re.compile(pattern)
                 new_buffer = buffer[: addr - 1] + buffer[addr:]
                 new_buffer.insert(addr - 1, regex.sub(replacement, buffer[addr - 1]))
