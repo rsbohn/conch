@@ -30,6 +30,7 @@ from .commands import (
     command_use,
     command_w,
 )
+from conch import commands
 
 
 class Submit(Message):
@@ -379,6 +380,9 @@ General Usage:
             if self.ai_model is None:
                 self.ai_model = AnthropicClient()
             response = await self.ai_model.oneshot(value, model=self.ai_model_name)
+            if response is not None:
+                hash = commands.save_to_cas(response)
+                self.log_view.append(f"[model] {self.ai_model_name} -> {hash}")
             for ln in response.splitlines() or ["(no output)"]:
                 for wrapped_ln in textwrap.wrap(ln, width=72) or [""]:
                     self.log_view.append("  " + wrapped_ln)

@@ -53,15 +53,18 @@ def command_select(app, sel):
     app.input.value = ""
     return False
 
-def command_w(app):
+def save_to_cas(s:str) -> str:
     cas_root = os.environ.get("CONCH_CAS_ROOT")
     if cas_root is None:
         home = os.environ.get("HOME") or os.path.expanduser("~")
         cas_root = os.path.join(home, ".conch", "cas")
     os.makedirs(cas_root, exist_ok=True)
     cas = CAS(cas_root)
+    return cas.put(s)
+
+def command_w(app):
     buffer_content = "\n".join([getattr(line, "text", str(line)) for line in app.log_view.lines])
-    hash_value = cas.put(buffer_content)
+    hash_value = save_to_cas(buffer_content)
     app.busy_indicator.update(f"Saved: {hash_value}")
     app.input.value = ""
 
