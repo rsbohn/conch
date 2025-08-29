@@ -18,10 +18,12 @@ from textual.reactive import reactive
 from textual.widgets import Input, Static, Footer
 import textwrap
 from .anthropic import AnthropicClient, DEFAULT_MODEL
+from .openai_client import OpenAIClient, DEFAULT_OPENAI_MODEL
 from .sam import Sam, SamParseError
 from .logview import LogView
 from .commands import (
     command_clear,
+    command_model,
     command_gf,
     command_help,
     command_lorem,
@@ -49,6 +51,7 @@ class ConchTUI(App):
     HELP_TEXT = """
 Available Commands:
   :help           - Show this help message
+  :model          - Show current AI provider and model
   :q, :quit       - Exit the application
   :clear, :cls    - Clear the log display
   :lorem          - Add sample text for testing scrolling
@@ -66,6 +69,14 @@ General Usage:
   - The log area shows command output and responses
   - Use scroll or arrow keys to navigate through log history
   - Use up/down arrow keys to move the dot and highlight the line
+  
+AI Mode:
+  Providers:
+    - Anthropic (default): set env var `keyfile` to a file containing your API key
+      Example: ":use claude-3-haiku-20240307" or ":use anthropic:claude-3-5-sonnet-20241022"
+    - OpenAI: set `OPENAI_API_KEY` (preferred) or `openai_keyfile`/`keyfile` pointing to a file
+      Example: ":use openai:gpt-4o-mini"
+  Current selection is shown in the title as [provider:model]. Use ":model" to print it.
 """
 
     CSS = """
@@ -106,7 +117,8 @@ General Usage:
         super().__init__(*args, **kwargs)
 
         self.busy = False  # Flag to indicate if the app is busy
-        self.ai_model = None  # Anthropic client, lazily initialized
+        self.ai_model = None  # AI client, lazily initialized
+        self.ai_provider = "anthropic"  # or "openai"
         self.ai_model_name = DEFAULT_MODEL  # Current model name
         self.sam = Sam()
         self.buffer: list[str] = []  # Main text buffer for log contents
@@ -146,7 +158,10 @@ General Usage:
         b = self.dot[1] + 1  # Convert to 1-based index for display
         if title is None:
             title = str((a, b))
-        self.log_view.border_title = f"Conch {title}"
+        provider = getattr(self, "ai_provider", "anthropic")
+        model = getattr(self, "ai_model_name", DEFAULT_MODEL)
+        model_label = f"[{provider}:{model}]"
+        self.log_view.border_title = f"Conch {model_label} {title}"
 
     def render_buffer(self) -> None:
         """Render current buffer highlighting the dot."""
@@ -328,6 +343,9 @@ General Usage:
             if cmd == "help":
                 command_help(self)
                 return
+            if cmd == "model":
+                command_model(self)
+                return
             if cmd.startswith("use "):
                 command_use(self, cmd_line)
                 return
@@ -378,7 +396,17 @@ General Usage:
             # AI mode: send the prompt to the AI model
             self.set_busy(True)  # Set busy state while waiting for AI response
             if self.ai_model is None:
-                self.ai_model = AnthropicClient()
+                # Pick client by provider
+                if self.ai_provider == "openai":
+                    # If user selected OpenAI without choosing a model, pick default
+                    if not self.ai_model_name or self.ai_model_name == DEFAULT_MODEL:
+                        self.ai_model_name = DEFAULT_OPENAI_MODEL
+                    self.ai_model = OpenAIClient()
+                else:
+                    # Default: Anthropic
+                    if not self.ai_model_name:
+                        self.ai_model_name = DEFAULT_MODEL
+                    self.ai_model = AnthropicClient()
             response = await self.ai_model.oneshot(value, model=self.ai_model_name)
             if response is not None:
                 hash = commands.save_to_cas(response)

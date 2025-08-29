@@ -133,17 +133,30 @@ If something is ambiguous, prefer:
 
 
 ## Pitch Methodology
-Each pitch is a small, end‑to‑end slice of work tracked in the devlog.
+Each pitch is a small, end‑to‑end slice of work tracked in the devlog and executed in clearly separated phases. Do not implement before agreement.
 
-- Start: Create a new devlog entry `devlog/YYYY-MM-DD-<topic>.md` with Summary, Goals, Actions, Artifacts, Repro, Next Steps.
-- Goals: State measurable goals and how you will verify them (tests, CI, docs updated).
-- Develop: Make focused patches; keep scope tight; update/add tests alongside code.
-- Test: Run `uv run pytest -q`; avoid networked tests; keep CI deterministic.
-- Integrate: Adjust CI as needed (e.g., add steps, pin Python); keep it fast.
-- Document: Update `README.md`, `AGENTS.md`, or in‑app help as relevant; record commands and rationale in the devlog.
-- Wrap up: Run formatter (`uv run black .` or `uvx black .`), update the devlog with outcomes, and do a final commit.
-  - Typical commit message: `pitch: <topic> — <short summary>`.
-  - Note: In Codex CLI, agents usually don’t commit; maintainers handle the actual commit/merge.
+- Phase 0 — Proposal (open)
+  - Create a new devlog entry `devlog/YYYY-MM-DD-<topic>.md` from the template.
+  - Fill: Summary, Goals (measurable), Acceptance Criteria, Out‑of‑Scope, Open Questions.
+  - Status: Proposed. No code changes in this phase.
+
+- Phase 1 — Alignment (agree)
+  - Discuss and refine objectives in the devlog or PR comments.
+  - Edit the devlog until both parties agree on scope and acceptance criteria.
+  - Mark Status: Agreed (include date/initials). Only after this, proceed.
+
+- Phase 2 — Development
+  - Implement the agreed scope with focused patches; avoid scope creep.
+  - Update/add tests alongside code; keep tests network‑free.
+  - Integrate CI changes if needed and update docs/help where relevant.
+  - Record notable decisions in the devlog’s Actions section.
+
+- Phase 3 — Wrap‑Up
+  - Format code: `uv run black .` (or `uvx black .`).
+  - Run tests: `uv run pytest -q`; ensure CI passes.
+  - Update devlog: Outcomes vs. Goals, links to files/PR, follow‑ups.
+  - Final commit message suggestion: `pitch: <topic> — <short summary>`.
+    - Note: In Codex CLI runs, agents usually don’t commit; maintainers handle commit/merge.
 
 ### Pitch Template
 - Template file: `devlog/pitch-template.md`

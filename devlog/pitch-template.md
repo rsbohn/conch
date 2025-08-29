@@ -1,5 +1,8 @@
 ## YYYY-MM-DD — Pitch: <topic>
 
+### Status
+- Proposed | Agreed (YYYY-MM-DD initials) | In Progress | Done
+
 ### Summary
 - One paragraph describing the intent and outcome of the pitch.
 
@@ -8,7 +11,16 @@
 - [ ] Goal 2 (verification: tests/CI/docs)
 - [ ] Goal 3
 
-### Actions
+### Acceptance Criteria
+- Clear, testable statements for completion and verification.
+
+### Out of Scope
+- Items explicitly not included in this pitch.
+
+### Open Questions
+- Clarifications to resolve before implementation begins.
+
+### Actions (Development Phase)
 - Planned work items or steps to achieve the goals. Keep focused and incremental.
 
 ### Artifacts
@@ -22,7 +34,7 @@
 - App (smoke): `uv run python main.py --test`
 
 ### Notes
-- Decisions, tradeoffs, and open questions.
+- Decisions, tradeoffs, and risks/assumptions.
 
 ### Wrap-up
 - Formatting: `uv run black .` (or `uvx black .`)

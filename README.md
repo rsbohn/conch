@@ -4,7 +4,7 @@ Blending shell, python, and ai in a single tool.
 
 ## What is it really?
 
-First, a chat client for Anthropic Claude (other providers pending).
+First, a chat client for Anthropic Claude (OpenAI support included).
 
 With '!' shell callouts.
 
@@ -37,3 +37,12 @@ This is very much experimental software. Expect changes.
   - Apply: `uv run black .` (or `uvx black .`)
 
 See also: `AGENTS.md` for contributor/agent workflow and guardrails.
+
+## Providers & Models
+
+- Anthropic (default): set `keyfile` to a file containing your Anthropic API key.
+  - Example: `:use claude-3-haiku-20240307` or `:use anthropic:claude-3-5-sonnet-20241022`
+- OpenAI: set `OPENAI_API_KEY` (preferred) or `openai_keyfile`/`keyfile` to a file path.
+  - Example: `:use openai:gpt-4o-mini`
+
+In AI mode, the input prompt is sent to the selected provider/model. Responses are wrapped to the log and saved to CAS.

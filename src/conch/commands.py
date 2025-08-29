@@ -90,8 +90,45 @@ def command_help(app):
 
 
 def command_use(app, cmd_line):
-    app.ai_model_name = cmd_line.split(maxsplit=1)[1]
-    app.log_view.append(f"[model] {app.ai_model_name}")
+    """
+    Set the AI model (and optionally provider).
+
+    Usage examples:
+      :use claude-3-haiku-20240307
+      :use anthropic:claude-3-5-sonnet-20241022
+      :use openai:gpt-4o-mini
+    """
+    value = cmd_line.split(maxsplit=1)[1]
+    provider = getattr(app, "ai_provider", "anthropic")
+    model = value
+    if ":" in value:
+        prov, mod = value.split(":", 1)
+        if prov:
+            provider = prov.strip().lower()
+        if mod:
+            model = mod.strip()
+    app.ai_provider = provider
+    app.ai_model_name = model
+    # Force re-init of client on next use
+    app.ai_model = None
+    app.log_view.append(f"[model] {provider}:{model}")
+    # Refresh UI title to reflect new selection
+    try:
+        app.set_log_title()
+    except Exception:
+        pass
+    app.input.value = ""
+
+
+def command_model(app):
+    """Show the current AI provider:model in the log and status."""
+    provider = getattr(app, "ai_provider", "anthropic")
+    model = getattr(app, "ai_model_name", "")
+    app.log_view.append(f"[model] {provider}:{model}")
+    try:
+        app.set_log_title()
+    except Exception:
+        pass
     app.input.value = ""
 
 
