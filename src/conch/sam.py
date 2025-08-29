@@ -5,15 +5,18 @@ IMPORTANT: Respect the contract: List[str] in, List[str] out
 """
 import re
 
+
 class SamParseError(Exception):
     pass
 
-ac_pattern = r'^(\d*\.?,?\d*)([acis])(.)(.*)\3$'
-other_pattern = r'^(\d+\.?,?\d*)([abcdefimnqrstx]|\.)(.*)?$'
+
+ac_pattern = r"^(\d*\.?,?\d*)([acis])(.)(.*)\3$"
+other_pattern = r"^(\d+\.?,?\d*)([abcdefimnqrstx]|\.)(.*)?$"
+
+
 class Sam:
     def __init__(self):
         pass
-
 
     def is_sam_command(self, line: str) -> bool:
         """
@@ -22,17 +25,17 @@ class Sam:
         """
         if line.startswith("\\"):
             return False
-        if line == '$':
+        if line == "$":
             return True
-        if line == '.':
+        if line == ".":
             return True
         if re.match(ac_pattern, line):
             return True
         if re.match(other_pattern, line):
             return True
         return False
-    
-    def parse_command(self, s: str, dot: tuple[int,int]) -> tuple[int, str, str]:
+
+    def parse_command(self, s: str, dot: tuple[int, int]) -> tuple[int, str, str]:
         """
         Parse a Sam command string into its components.
         Returns a tuple of (address, command, text).
@@ -40,15 +43,15 @@ class Sam:
         # Special case for '^.'
         if s.startswith("."):
             addr = dot[0] + 1  # Use current line number
-            cmd = s[1] if len(s) > 1 else '.'
-            text = ''
+            cmd = s[1] if len(s) > 1 else "."
+            text = ""
             if len(s) > 2:
                 text = s[2:]
             return addr, cmd, text
-        if s == '$.':
+        if s == "$.":
             addr = -1  # Use current line number
-            cmd = '.'
-            text = ''
+            cmd = "."
+            text = ""
             return addr, cmd, text
 
         # Match against the command patterns
@@ -57,8 +60,8 @@ class Sam:
             addr = int(match.group(1)) if match.group(1) else dot[0] + 1
             cmd = match.group(2)
             text = match.group(4) if match.group(4) else ""
-            if cmd == 's':
-                text = match.group(3)+match.group(4)
+            if cmd == "s":
+                text = match.group(3) + match.group(4)
             return addr, cmd, text
 
         match = re.match(other_pattern, s)
@@ -96,7 +99,7 @@ class Sam:
             addr = len(buffer)  # Adjust to buffer length
         if cmd == ".":
             # No-op. Use to move the dot.
-            return (buffer, (addr-1, addr))
+            return (buffer, (addr - 1, addr))
         if cmd == "a":
             lines = text.splitlines()
             return (buffer[:addr] + lines + buffer[addr:], (addr, addr + len(lines)))
@@ -122,7 +125,7 @@ class Sam:
                 line_to_move = buffer[addr - 1]
                 new_buffer = buffer[: addr - 1] + buffer[addr:]
                 new_buffer.insert(target - 1, line_to_move)
-                return (new_buffer, (target-1, target))
+                return (new_buffer, (target - 1, target))
             return (buffer, dot)  # If target is out of bounds, return unchanged
 
         if cmd == "q":
@@ -139,7 +142,7 @@ class Sam:
                 regex = re.compile(pattern)
                 new_buffer = buffer[: addr - 1] + buffer[addr:]
                 new_buffer.insert(addr - 1, regex.sub(replacement, buffer[addr - 1]))
-                return (new_buffer, (addr-1, addr))
+                return (new_buffer, (addr - 1, addr))
             # need some way to reflect the error in TUI
             except Exception as e:
                 raise SamParseError(f"Failed to parse command: {e}")
@@ -153,5 +156,3 @@ class Sam:
         # Add more commands here as needed
         # If command not recognized, return buffer unchanged
         return (buffer, (0, 0))
-
-

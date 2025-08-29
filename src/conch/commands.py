@@ -17,15 +17,18 @@ LOREM = [
     "dolores eos qui ratione voluptatem sequi nesciunt.",
 ]
 
+
 def command_select(app, sel):
     """
     Implements colon-prefixed global selection commands (e.g., :a,b, :dot,b, :a,dot, :a,$, :a,+n, :a,-n).
     Updates app.dot and display selection accordingly.
     """
     import re
+
     m = re.match(r"^(dot|\d+|a|\$|\.)(,)(dot|\d+|b|\$|\.|\+\d+|-\d+)$", sel)
     if m:
         a_raw, _, b_raw = m.groups()
+
         def parse_pos(pos):
             if pos in ("dot", "."):
                 return app.dot[0]
@@ -43,6 +46,7 @@ def command_select(app, sel):
                 return int(pos) - 1
             except Exception:
                 return app.dot[0]
+
         a = max(0, min(parse_pos(a_raw), len(app.buffer) - 1 if app.buffer else 0))
         b = max(0, min(parse_pos(b_raw), len(app.buffer) - 1 if app.buffer else 0))
         app.dot = (a, b)
@@ -53,7 +57,8 @@ def command_select(app, sel):
     app.input.value = ""
     return False
 
-def save_to_cas(s:str) -> str:
+
+def save_to_cas(s: str) -> str:
     cas_root = os.environ.get("CONCH_CAS_ROOT")
     if cas_root is None:
         home = os.environ.get("HOME") or os.path.expanduser("~")
@@ -62,31 +67,39 @@ def save_to_cas(s:str) -> str:
     cas = CAS(cas_root)
     return cas.put(s)
 
+
 def command_w(app):
-    buffer_content = "\n".join([getattr(line, "text", str(line)) for line in app.log_view.lines])
+    buffer_content = "\n".join(
+        [getattr(line, "text", str(line)) for line in app.log_view.lines]
+    )
     hash_value = save_to_cas(buffer_content)
     app.busy_indicator.update(f"Saved: {hash_value}")
     app.input.value = ""
+
 
 def command_clear(app):
     app.log_view.clear()
     app.log_view.set_title("Conch TUI")
     app.input.value = ""
 
+
 def command_help(app):
     for line in app.HELP_TEXT.strip().split("\n"):
         app.log_view.append(line)
     app.input.value = ""
+
 
 def command_use(app, cmd_line):
     app.ai_model_name = cmd_line.split(maxsplit=1)[1]
     app.log_view.append(f"[model] {app.ai_model_name}")
     app.input.value = ""
 
+
 def command_lorem(app):
     for line in LOREM:
         app.log_view.append(line)
     app.input.value = ""
+
 
 def command_paste(app):
     try:
@@ -98,6 +111,7 @@ def command_paste(app):
     except Exception as e:
         app.log_view.append(f"[error] Clipboard access failed: {e}")
     app.input.value = ""
+
 
 def command_gf(app):
     buffer = [getattr(line, "text", str(line)) for line in app.log_view.lines]

@@ -1,6 +1,7 @@
 from textual.widgets import RichLog
 from rich.segment import Segment
 
+
 class LogView(RichLog):
     """Scrollable log area using RichLog for better performance and scrolling.
 
@@ -28,14 +29,18 @@ class LogView(RichLog):
     def set_title(self, title: str) -> None:
         self.border_title = title
 
-    def get_lines(self, a:int=0, b:int=-1) -> list[str]:
+    def get_lines(self, a: int = 0, b: int = -1) -> list[str]:
         """
         Get lines from the buffer between indices a and b.
         """
-        if a < 0: a = len(self._lines_buf) + a
-        if b < 0: b = len(self._lines_buf) + b
-        if a > b: return self.get_lines(b, a)
-        if a == b: return self.get_lines(a, a+1)
+        if a < 0:
+            a = len(self._lines_buf) + a
+        if b < 0:
+            b = len(self._lines_buf) + b
+        if a > b:
+            return self.get_lines(b, a)
+        if a == b:
+            return self.get_lines(a, a + 1)
         selection = self._lines_buf[a:b]
         # Segment.text is not available, use Segment's 'text' attribute
         return [seg.text if hasattr(seg, "text") else str(seg) for seg in selection]
@@ -47,4 +52,3 @@ class LogView(RichLog):
     @lines.setter
     def lines(self, value: list[Segment | str]) -> None:
         self._lines_buf = [v if isinstance(v, Segment) else Segment(v) for v in value]
-        

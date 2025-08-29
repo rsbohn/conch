@@ -11,31 +11,34 @@ sam = Sam()
 buffer = open("tests/scratch.txt").readlines()
 buffer = [line.rstrip() for line in buffer]  # Remove trailing newlines
 
+
 def test_parse_command_dot_cases():
     dot = (3, 4)
     # '..' should use dot[0] for address, '.' for command, None for text
-    addr, cmd, text = sam.parse_command('..', dot)
-    assert addr == dot[0]+1, f"Expected addr={dot[0]+1}, got {addr}"
-    assert cmd == '.', f"Expected cmd='.', got {cmd}"
-    assert text == '', f"Expected text='', got {text}"
+    addr, cmd, text = sam.parse_command("..", dot)
+    assert addr == dot[0] + 1, f"Expected addr={dot[0]+1}, got {addr}"
+    assert cmd == ".", f"Expected cmd='.', got {cmd}"
+    assert text == "", f"Expected text='', got {text}"
 
     # '$.' should use -1 for address, '.' for command, None for text
-    addr, cmd, text = sam.parse_command('$.', dot)
+    addr, cmd, text = sam.parse_command("$.", dot)
     assert addr == -1, f"Expected addr=-1, got {addr}"
-    assert cmd == '.', f"Expected cmd='.', got {cmd}"
-    assert text == '', f"Expected text='', got {text}"
+    assert cmd == ".", f"Expected cmd='.', got {cmd}"
+    assert text == "", f"Expected text='', got {text}"
 
     # '7.' should use 7 for address, '.' for command, None for text
-    addr, cmd, text = sam.parse_command('7.', dot)
+    addr, cmd, text = sam.parse_command("7.", dot)
     assert addr == 7, f"Expected addr=7, got {addr}"
-    assert cmd == '.', f"Expected cmd='.', got {cmd}"
-    assert text == '', f"Expected text='', got {text}"
+    assert cmd == ".", f"Expected cmd='.', got {cmd}"
+    assert text == "", f"Expected text='', got {text}"
+
 
 def test_sam_a():
     dot = (3, 4)
     result, dot = sam.exec("2a/Hello/", buffer, dot)
     assert result == buffer[:2] + ["Hello"] + buffer[2:]
     assert dot == (2, 3)
+
 
 def test_sam_c():
     n = 2
@@ -82,9 +85,9 @@ def test_sam_m():
     n = 4
     dot = (3, 4)
     result, dot = sam.exec(f"{m}m{n}", buffer2, dot)
-    dot_expected = n-1
+    dot_expected = n - 1
     assert result == expected
-    assert dot == (dot_expected, dot_expected+1)
+    assert dot == (dot_expected, dot_expected + 1)
 
 
 def test_sam_s():

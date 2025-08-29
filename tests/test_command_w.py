@@ -6,19 +6,24 @@ sys.modules.setdefault("pyperclip", SimpleNamespace(paste=lambda: ""))
 
 from conch.commands import command_w
 
+
 class DummyLogView:
     def __init__(self, lines=None):
         self.lines = lines or []
 
+
 class DummyBusyIndicator:
     def __init__(self):
         self.message = None
+
     def update(self, msg):
         self.message = msg
+
 
 class DummyInput:
     def __init__(self):
         self.value = ""
+
 
 class DummyApp:
     def __init__(self):
@@ -34,7 +39,9 @@ def test_command_w_uses_env_var(tmp_path, monkeypatch):
     command_w(app)
     assert cas_path.exists()
     assert (cas_path / "store").exists()
-    assert app.busy_indicator.message and app.busy_indicator.message.startswith("Saved: ")
+    assert app.busy_indicator.message and app.busy_indicator.message.startswith(
+        "Saved: "
+    )
 
 
 def test_command_w_defaults_to_home(tmp_path, monkeypatch):
@@ -45,4 +52,6 @@ def test_command_w_defaults_to_home(tmp_path, monkeypatch):
     cas_path = tmp_path / ".conch" / "cas"
     assert cas_path.exists()
     assert (cas_path / "store").exists()
-    assert app.busy_indicator.message and app.busy_indicator.message.startswith("Saved: ")
+    assert app.busy_indicator.message and app.busy_indicator.message.startswith(
+        "Saved: "
+    )

@@ -8,7 +8,7 @@ while True:
     try:
         if sam.is_sam_command(command):
             result = sam.parse_command(command, (1, 1))
-            if result[1]=='s':
+            if result[1] == "s":
                 delimiter = result[2][0]
                 result = (result[0], result[1], result[2].split(delimiter))
             print("command:", result)

@@ -11,6 +11,7 @@ sys.path.insert(
 )
 from conch.logview import LogView
 
+
 def test_get_lines_basic():
     lv = LogView()
     lv.lines = ["line1", "line2", "line3", "line4", "line5"]
@@ -30,11 +31,13 @@ def test_get_lines_basic():
     assert lv.get_lines(0, 10) == ["line1", "line2", "line3", "line4", "line5"]
     assert lv.get_lines(-10, 2) == ["line1", "line2"]
 
+
 def test_get_lines_empty():
     lv = LogView()
     lv.lines = []
     assert lv.get_lines(0, 1) == []
     assert lv.get_lines(-1, 0) == []
+
 
 def test_clear_resets_lines():
     lv = LogView()
@@ -43,6 +46,7 @@ def test_clear_resets_lines():
     lv.clear()
     assert lv.get_lines(0, 2) == []
     assert lv.get_lines() == []
+
 
 def test_logview_append_and_title():
     lv = LogView()
@@ -60,6 +64,7 @@ def test_logview_append_and_title():
     # ensure title remains settable after clear
     lv.set_title("Other")
     assert lv.border_title == "Other"
+
 
 def test_logview_append_get_lines():
     lv = LogView()

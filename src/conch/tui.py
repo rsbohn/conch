@@ -343,8 +343,8 @@ General Usage:
 
         # Interpolate the user input
         # unless the input is quoted
-        if value[0] == "\"":
-            if value[-1] == "\"":
+        if value[0] == '"':
+            if value[-1] == '"':
                 value = value[1:-1]
             else:
                 value = value[1:]  # Remove leading quote
@@ -417,7 +417,7 @@ General Usage:
 
     # Shell command execution
     # TODO: operate on selection
-    def do_shell_command(self, command:str) -> None:
+    def do_shell_command(self, command: str) -> None:
         try:
             args = shlex.split(command)
             p = subprocess.run(args, capture_output=True, text=True, timeout=10)
@@ -426,12 +426,13 @@ General Usage:
             out = f"[error] {e}"
         for ln in out.splitlines() or ["(no output)"]:
             self.log_view.append("  " + ln)
-            
+
     def interpolate(self, value: str) -> str:
         a = self.dot[0]
         b = self.dot[1]
         payload = self.log_view.get_lines(a, b)
         return value.replace("%%", "\n" + "\n".join(payload) + "\n")
+
 
 def main() -> None:
     """Main entry point to run the Conch TUI application."""

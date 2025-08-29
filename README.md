@@ -27,3 +27,13 @@ This is very much experimental software. Expect changes.
 
 [![Open in GitHub Codespaces](https://github.com/codespaces/badge.svg)](https://codespaces.new/rsbohn/conch)
 [![Python 3.12](https://img.shields.io/badge/python-3.12-blue.svg)](https://www.python.org/downloads/release/python-3120/)
+
+## Development
+
+- Install deps (incl. dev): `uv sync --group dev`
+- Run tests: `uv run pytest -q`
+- Format code (Black):
+  - Check: `uv run black --check .` (or `uvx black --check .`)
+  - Apply: `uv run black .` (or `uvx black .`)
+
+See also: `AGENTS.md` for contributor/agent workflow and guardrails.
