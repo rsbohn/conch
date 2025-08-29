@@ -8,6 +8,7 @@ is only used when explicitly selected; tests should not hit the network.
 from __future__ import annotations
 
 import os
+import asyncio
 from typing import Optional
 import httpx
 
@@ -48,10 +49,46 @@ class OpenAIClient:
             "max_tokens": max_tokens,
             "messages": [{"role": "user", "content": prompt}],
         }
+        # Simple retry with backoff for transient errors (e.g., 429/503)
+        attempt = 0
+        last_err: Optional[Exception] = None
         async with httpx.AsyncClient(timeout=30) as client:
-            resp = await client.post(OPENAI_API_URL, json=data, headers=headers)
-            resp.raise_for_status()
-            result = resp.json()
+            while attempt < 3:
+                try:
+                    resp = await client.post(OPENAI_API_URL, json=data, headers=headers)
+                    resp.raise_for_status()
+                    result = resp.json()
+                    break
+                except httpx.HTTPStatusError as e:
+                    last_err = e
+                    status = e.response.status_code if e.response is not None else None
+                    if status in (429, 503):
+                        # Honor Retry-After if present; otherwise exponential backoff
+                        retry_after = 0.0
+                        try:
+                            ra = e.response.headers.get("Retry-After") if e.response else None
+                            if ra:
+                                retry_after = float(ra)
+                        except Exception:
+                            retry_after = 0.0
+                        if retry_after <= 0:
+                            retry_after = 1.0 * (2 ** attempt)
+                        await asyncio.sleep(retry_after)
+                        attempt += 1
+                        continue
+                    # Non-retryable status
+                    raise
+                except httpx.RequestError as e:
+                    # Network/transient; retry briefly
+                    last_err = e
+                    await asyncio.sleep(1.0 * (2 ** attempt))
+                    attempt += 1
+                    continue
+            else:
+                # exhausted retries
+                if last_err:
+                    raise last_err
+                raise RuntimeError("OpenAI request failed without response")
         try:
             return result["choices"][0]["message"]["content"]
         except (KeyError, IndexError):

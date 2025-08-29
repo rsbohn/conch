@@ -407,12 +407,49 @@ AI Mode:
                     if not self.ai_model_name:
                         self.ai_model_name = DEFAULT_MODEL
                     self.ai_model = AnthropicClient()
-            response = await self.ai_model.oneshot(value, model=self.ai_model_name)
-            if response is not None:
-                hash = commands.save_to_cas(response)
-                self.log_view.append(f"[model] {self.ai_model_name} -> {hash}")
-            for ln in response.splitlines() or ["(no output)"]:
-                for wrapped_ln in textwrap.wrap(ln, width=72) or [""]:
+            import httpx
+            try:
+                response = await self.ai_model.oneshot(value, model=self.ai_model_name)
+            except httpx.HTTPStatusError as e:
+                status = e.response.status_code if getattr(e, "response", None) else "?"
+                # Try to extract provider-specific error details
+                code = None
+                detail = None
+                try:
+                    j = e.response.json() if getattr(e, "response", None) else None
+                    if isinstance(j, dict) and "error" in j:
+                        err = j.get("error") or {}
+                        code = err.get("code") or err.get("type")
+                        detail = err.get("message")
+                except Exception:
+                    pass
+                if status == 429:
+                    if code in ("insufficient_quota", "quota_exceeded"):
+                        self.log_view.append("[error] OpenAI quota exceeded. Add billing/credits or switch provider.")
+                    else:
+                        self.log_view.append("[error] OpenAI rate limit (429). Please slow down or retry later.")
+                else:
+                    msg = detail or str(e)
+                    self.log_view.append(f"[error] HTTP error from AI provider: {msg}")
+                self.set_busy(False)
+                self.input.value = ""
+                return
+            except Exception as e:
+                self.log_view.append(f"[error] AI request failed: {e}")
+                self.set_busy(False)
+                self.input.value = ""
+                return
+
+            # Save successful responses to CAS and render output safely
+            text_out = response or ""
+            if response:
+                try:
+                    hash = commands.save_to_cas(response)
+                    self.log_view.append(f"[model] {self.ai_model_name} -> {hash}")
+                except Exception as e:
+                    self.log_view.append(f"[error] Failed to save to CAS: {e}")
+            for ln in (text_out.splitlines() or ["(no output)"]):
+                for wrapped_ln in (textwrap.wrap(ln, width=72) or [""]):
                     self.log_view.append("  " + wrapped_ln)
             self.set_busy(False)  # Reset busy state after getting AI response
 
