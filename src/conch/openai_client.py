@@ -44,11 +44,18 @@ class OpenAIClient:
             "authorization": f"Bearer {self.api_key}",
             "content-type": "application/json",
         }
+        # GPT-5 models use a different parameter name for completions tokens
+        # per Issue #21: use 'max-completion-tokens' for gpt-5* models,
+        # and 'max_tokens' for all other models.
+        uses_gpt5_param = str(model).lower().startswith("gpt-5")
         data = {
             "model": model,
-            "max_tokens": max_tokens,
             "messages": [{"role": "user", "content": prompt}],
         }
+        if uses_gpt5_param:
+            data["max-completion-tokens"] = max_tokens
+        else:
+            data["max_tokens"] = max_tokens
         # Simple retry with backoff for transient errors (e.g., 429/503)
         attempt = 0
         last_err: Optional[Exception] = None
@@ -66,13 +73,17 @@ class OpenAIClient:
                         # Honor Retry-After if present; otherwise exponential backoff
                         retry_after = 0.0
                         try:
-                            ra = e.response.headers.get("Retry-After") if e.response else None
+                            ra = (
+                                e.response.headers.get("Retry-After")
+                                if e.response
+                                else None
+                            )
                             if ra:
                                 retry_after = float(ra)
                         except Exception:
                             retry_after = 0.0
                         if retry_after <= 0:
-                            retry_after = 1.0 * (2 ** attempt)
+                            retry_after = 1.0 * (2**attempt)
                         await asyncio.sleep(retry_after)
                         attempt += 1
                         continue
@@ -81,7 +92,7 @@ class OpenAIClient:
                 except httpx.RequestError as e:
                     # Network/transient; retry briefly
                     last_err = e
-                    await asyncio.sleep(1.0 * (2 ** attempt))
+                    await asyncio.sleep(1.0 * (2**attempt))
                     attempt += 1
                     continue
             else:

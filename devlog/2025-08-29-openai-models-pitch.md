@@ -30,3 +30,6 @@ Add OpenAI provider support alongside Anthropic: select provider via `:use`, rou
 - Format: `uv run black .`
 - Status: Tests pass locally.
 - Commit: `pitch: openai-models — add OpenAI provider + :use support`
+
+## Follow-ups
+- Parameter update for GPT‑5 token key: see `devlog/2025-08-29-gpt5-max-completion-tokens.md`.
