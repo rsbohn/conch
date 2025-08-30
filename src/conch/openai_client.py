@@ -44,9 +44,8 @@ class OpenAIClient:
             "authorization": f"Bearer {self.api_key}",
             "content-type": "application/json",
         }
-        # GPT-5 models use a different parameter name for completions tokens
-        # per Issue #21: use 'max_completion_tokens' for gpt-5* models,
-        # and 'max_tokens' for all other models.
+        # GPT-5 models use a different parameter name for completion tokens.
+        # Use 'max_completion_tokens' for gpt-5* models, and 'max_tokens' for others.
         uses_gpt5_param = str(model).lower().startswith("gpt-5")
         data = {
             "model": model,

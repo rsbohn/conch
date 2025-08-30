@@ -64,5 +64,5 @@ def test_gpt5_uses_max_completion_tokens(monkeypatch):
     _run(client.oneshot("hi", model="gpt-5", max_tokens=321))
     sent = _DummyAsyncClient.last_json
     assert sent["model"] == "gpt-5"
-    assert sent.get("max-completion-tokens") == 321
+    assert sent.get("max_completion_tokens") == 321
     assert "max_tokens" not in sent
