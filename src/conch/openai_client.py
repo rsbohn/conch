@@ -45,7 +45,7 @@ class OpenAIClient:
             "content-type": "application/json",
         }
         # GPT-5 models use a different parameter name for completions tokens
-        # per Issue #21: use 'max-completion-tokens' for gpt-5* models,
+        # per Issue #21: use 'max_completion_tokens' for gpt-5* models,
         # and 'max_tokens' for all other models.
         uses_gpt5_param = str(model).lower().startswith("gpt-5")
         data = {
@@ -53,7 +53,7 @@ class OpenAIClient:
             "messages": [{"role": "user", "content": prompt}],
         }
         if uses_gpt5_param:
-            data["max-completion-tokens"] = max_tokens
+            data["max_completion_tokens"] = max_tokens
         else:
             data["max_tokens"] = max_tokens
         # Simple retry with backoff for transient errors (e.g., 429/503)
