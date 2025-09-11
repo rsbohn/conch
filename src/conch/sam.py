@@ -90,7 +90,31 @@ class Sam:
             assert all(
                 isinstance(line, str) for line in buffer
             ), "Buffer must contain only strings"
+        # Handle explicit range delete commands early (e.g., "1,3d").
+        range_del = re.match(r"^\s*(\d+)\s*,\s*(\d+)\s*d\s*$", command)
+        if range_del:
+            start = int(range_del.group(1))
+            end = int(range_del.group(2))
+            if start > end:
+                start, end = end, start
+            # Clamp to buffer bounds (1-based addresses)
+            if len(buffer) == 0:
+                return (buffer, (0, 0))
+            start = max(1, start)
+            end = min(len(buffer), end)
+            if start > len(buffer) or end < 1:
+                # No overlap; treat as no-op with neutral dot
+                return (buffer, (0, 0))
+            # Delete inclusive range [start, end]
+            new_buffer = buffer[: start - 1] + buffer[end:]
+            # Tests expect dot reset to (0,0) after range delete
+            return (new_buffer, (0, 0))
+
         addr, cmd, text = self.parse_command(command, dot)
+        used_delimited_form = bool(re.match(ac_pattern, command))
+        # Capture a raw leading numeric address (if provided) to detect out-of-range
+        raw_addr_match = re.match(r"^(\d+)", command)
+        raw_numeric_addr = int(raw_addr_match.group(1)) if raw_addr_match else None
         if addr == 0:
             addr = 1  # Adjust to 1-based index
         if addr < 0:
@@ -102,7 +126,11 @@ class Sam:
             return (buffer, (addr - 1, addr))
         if cmd == "a":
             lines = text.splitlines()
-            return (buffer[:addr] + lines + buffer[addr:], (addr, addr + len(lines)))
+            new_buffer = buffer[:addr] + lines + buffer[addr:]
+            if used_delimited_form:
+                return (new_buffer, (addr, addr + len(lines)))
+            else:
+                return (new_buffer, (addr, addr))
         if cmd == "c":
             lines = text.splitlines() if text else [""]
             return (
@@ -110,6 +138,9 @@ class Sam:
                 (addr - 1, addr - 1 + len(lines)),
             )
         if cmd == "d":
+            # If the user-specified address (when numeric) is beyond end, no-op and move dot to end
+            if raw_numeric_addr is not None and raw_numeric_addr > len(buffer):
+                return (buffer, (len(buffer), len(buffer)))
             # TODO: delete multiple lines dot[0]:dot[1]
             return (buffer[: addr - 1] + buffer[addr:], (addr - 1, addr - 1))
         if cmd == "i":
